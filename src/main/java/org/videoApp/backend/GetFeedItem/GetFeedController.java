@@ -17,13 +17,10 @@ import java.io.UnsupportedEncodingException;
 public class GetFeedController {
 
     Gson GSON = new Gson();
-    //TODO Timestamp
-    //Todo feed update (Require begging in request)
     @RequestMapping("/getPopularFeedItems")
     public String getPopularFeedItems(@RequestBody GetFeedItemRequest request) {
         SQLClient sqlClient = new SQLClient();
         String sqlCommand = getSQLQuery(request.getLatitude(), request.getLongitude(), "Votes DESC", request.getGetPostsFrom(), request.getGetPostsTo());
-        System.out.println(sqlCommand);
         JSONObject sqlOutput = sqlClient.getRows(sqlCommand);
         if (sqlOutput.has("error")) {
             sqlClient.terminate();

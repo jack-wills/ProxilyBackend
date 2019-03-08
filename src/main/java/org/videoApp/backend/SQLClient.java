@@ -36,6 +36,7 @@ public class SQLClient {
         TYPE.put("DATE", Date.class);
         TYPE.put("TIME", Time.class);
         TYPE.put("TIMESTAMP", Timestamp.class);
+        TYPE.put("DATETIME", Timestamp.class);
         TYPE.put("SERIAL",Integer.class);
         // ...
     }
