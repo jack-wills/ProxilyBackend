@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.videoApp.backend.SQLClient;
+import org.videoApp.backend.TokenClient;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -34,9 +36,7 @@ public class CommentsController {
                 }
                 return sqlOutput.toString();
             }
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getJwt());
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             CommentItem[] outputArray = new CommentItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
@@ -52,7 +52,7 @@ public class CommentsController {
                 } else {
                     userVote = 0;
                 }
-                outputArray[i] = new CommentItem(i + 1, item.getString("Content"), item.getString("Submitter"), userVote, item.getInt("Votes"), item.getInt("CommentID"));
+                outputArray[i] = new CommentItem(i + 1, item.getString("Content"), item.getString("Submitter"), userVote, item.getInt("Votes")-userVote, item.getInt("CommentID"));
             }
             sqlClient.terminate();
             return GSON.toJson(outputArray);
@@ -64,6 +64,8 @@ public class CommentsController {
             sqlClient.terminate();
             System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (IOException e) {
+            return "{\"error\": \"internal server error\"}";
         }
     }
 
@@ -73,9 +75,7 @@ public class CommentsController {
         LocalDateTime ldt = LocalDateTime.now().plusDays(1);
         DateTimeFormatter formmat1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         try {
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getJwt());
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONObject sqlPutJson = new JSONObject();
             sqlPutJson.put("Content", request.getContent());
             sqlPutJson.put("Submitter", claims.getBody().get("firstName") + " " + claims.getBody().get("lastName"));
@@ -91,6 +91,8 @@ public class CommentsController {
         } catch (UnsupportedEncodingException e) {
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
+        } catch (IOException e) {
+            return "{\"error\": \"internal server error\"}";
         }
     }
 
@@ -98,9 +100,7 @@ public class CommentsController {
     public String voteComment(@RequestBody VoteCommentRequest request) {
         SQLClient sqlClient = new SQLClient();
         try {
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getJwt());
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             int previousVote;
             JSONObject result = sqlClient.getRow("SELECT Vote FROM comments_votes WHERE Email='" + claims.getBody().getSubject() + "' AND CommentID='" + request.getCommentID() + "';");
             if (result.has("error") && result.get("error").equals("OBJECT_NOT_FOUND")) {
@@ -141,6 +141,8 @@ public class CommentsController {
             sqlClient.terminate();
             System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (IOException e) {
+            return "{\"error\": \"internal server error\"}";
         }
     }
 }

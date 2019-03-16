@@ -16,7 +16,9 @@ import org.videoApp.backend.GetFeedItem.MediaPost;
 import org.videoApp.backend.GetFeedItem.TextPost;
 import org.videoApp.backend.GetFeedItem.VideoPost;
 import org.videoApp.backend.SQLClient;
+import org.videoApp.backend.TokenClient;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 @RestController
@@ -27,9 +29,7 @@ public class VotingController {
     public String registerVote(@RequestBody VotingRequest request) {
         SQLClient sqlClient = new SQLClient();
         try {
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getJwt());
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             int previousVote;
             JSONObject result = sqlClient.getRow("SELECT Vote FROM users_votes WHERE Email='" + claims.getBody().getSubject() + "' AND PostID='" + request.getPostID() + "';");
             if (result.has("error") && result.get("error").equals("OBJECT_NOT_FOUND")) {
@@ -70,6 +70,8 @@ public class VotingController {
             sqlClient.terminate();
             System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (IOException e) {
+            return "{\"error\": \"internal server error\"}";
         }
     }
 

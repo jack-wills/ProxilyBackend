@@ -9,8 +9,11 @@ import org.json.JSONObject;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.videoApp.backend.Profile;
 import org.videoApp.backend.SQLClient;
+import org.videoApp.backend.TokenClient;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
@@ -41,8 +44,7 @@ public class AuthController {
                                 "Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8")
                         )
                         .compact();
-                response.put("firstName", itemReturn.getString("FirstName"));
-                response.put("lastName", itemReturn.getString("LastName"));
+                response.put("name", itemReturn.getString("FirstName") + " " + itemReturn.getString("LastName"));
                 response.put("email", request.getEmail());
                 response.put("jwt", jws);
             } else {
@@ -66,18 +68,44 @@ public class AuthController {
     public String checkToken(@RequestBody String requestString) {
         try {
             JSONObject request = new JSONObject(requestString);
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getString("jwt"));
+            Jws<Claims> claims = TokenClient.decodeToken(request.getString("token"));
             claims.getBody().getSubject();
             JSONObject response = new JSONObject();
-            response.put("firstName", claims.getBody().get("firstName"));
-            response.put("lastName", claims.getBody().get("lastName"));
+            response.put("name", String.class.cast(claims.getBody().get("firstName")) + " " + String.class.cast(claims.getBody().get("lastName")));
             response.put("email", claims.getBody().getSubject());
             return response.toString();
         } catch (JSONException e) {
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            return "{\"error\": \"internal server error\"}";
+        } catch (IOException e) {
+            return "{\"error\": \"internal server error\"}";
+        }
+    }
+
+    @RequestMapping("/registerFacebookAccount")
+    public String registerFacebookAccount(@RequestBody String requestString) {
+        SQLClient sqlClient = new SQLClient();
+        try {
+            JSONObject request = new JSONObject(requestString);
+            JSONObject sqlPutJson = new JSONObject();
+            Profile profile = TokenClient.getFacebookUserInfo(request.getString("token"));
+            JSONObject itemReturn = sqlClient.getRow("SELECT * FROM users WHERE email='" + profile.getEmail() + "'");
+            if (itemReturn.has("error") && itemReturn.get("error").equals("OBJECT_NOT_FOUND")) {
+                sqlPutJson.put("Email", profile.getEmail());
+                String lastName = profile.getName().substring(profile.getName().lastIndexOf(' ') + 1).trim();
+                String firstName = profile.getName().replace(" " + lastName, "");
+                sqlPutJson.put("FirstName", firstName);
+                sqlPutJson.put("LastName", lastName);
+                sqlClient.setRow(sqlPutJson, "users", false);
+            }
+            sqlClient.terminate();
+            return "{\"success\": true}";
+        } catch (JSONException e) {
+            sqlClient.terminate();
+            return "{error: \"internal server error\"}";
+        } catch (IOException e) {
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

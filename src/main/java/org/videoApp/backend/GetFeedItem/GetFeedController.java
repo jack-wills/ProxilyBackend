@@ -10,7 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.videoApp.backend.SQLClient;
+import org.videoApp.backend.TokenClient;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 @RestController
@@ -27,64 +29,7 @@ public class GetFeedController {
             return sqlOutput.toString();
         }
         try {
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getJwt());
-            JSONArray sqlArray = sqlOutput.getJSONArray("entries");
-            FeedItem[] outputArray = new FeedItem[sqlArray.length()];
-            for (int i = 0; i < sqlArray.length(); i++) {
-                JSONObject item = sqlArray.getJSONObject(i);
-                int userVote;
-                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (Email = '" + claims.getBody().getSubject() + "' AND PostID = '" + item.getString("PostID") + "')");
-                if (userVoteQueryJson.has("Vote")) {
-                    if (userVoteQueryJson.getBoolean("Vote")) {
-                        userVote = 1;
-                    } else {
-                        userVote = -1;
-                    }
-                } else {
-                    userVote = 0;
-                }
-                JSONObject media = new JSONObject(item.getString("Media"));
-                MediaPost mediaPost;
-                if (media.has("text")) {
-                    mediaPost = new TextPost(media.getJSONObject("text").getString("content"));
-                } else if (media.has("image")) {
-                    mediaPost = new ImagePost(media.getJSONObject("image").getString("url"));
-                } else if (media.has("video")) {
-                    mediaPost = new VideoPost(media.getJSONObject("video").getString("url"));
-                } else {
-                    throw new JSONException("Media is not of type text, image or video");
-                }
-                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("Submitter"), userVote, item.getInt("Votes"), item.getInt("PostID"));
-            }
-            sqlClient.terminate();
-            return GSON.toJson(outputArray);
-        } catch (JSONException e) {
-            sqlClient.terminate();
-            System.out.println("JSONException: " + e.getMessage());
-            return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (UnsupportedEncodingException e) {
-            sqlClient.terminate();
-            System.out.println("UnsupportedEncodingException: " + e.getMessage());
-            return "{\"error\": \"" + e.getMessage() + "\"}";
-        }
-    }
-
-    @RequestMapping("/getLatestFeedItems")
-    public String getLatestFeedItems(@RequestBody GetFeedItemRequest request) {
-        SQLClient sqlClient = new SQLClient();
-        String sqlCommand = getSQLQuery(request.getLatitude(), request.getLongitude(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
-        System.out.println(sqlCommand);
-        JSONObject sqlOutput = sqlClient.getRows(sqlCommand);
-        if (sqlOutput.has("error")) {
-            sqlClient.terminate();
-            return sqlOutput.toString();
-        }
-        try {
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getJwt());
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
@@ -123,6 +68,62 @@ public class GetFeedController {
             sqlClient.terminate();
             System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (IOException e) {
+            return "{\"error\": \"internal server error\"}";
+        }
+    }
+
+    @RequestMapping("/getLatestFeedItems")
+    public String getLatestFeedItems(@RequestBody GetFeedItemRequest request) {
+        SQLClient sqlClient = new SQLClient();
+        String sqlCommand = getSQLQuery(request.getLatitude(), request.getLongitude(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
+        JSONObject sqlOutput = sqlClient.getRows(sqlCommand);
+        if (sqlOutput.has("error")) {
+            sqlClient.terminate();
+            return sqlOutput.toString();
+        }
+        try {
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
+            JSONArray sqlArray = sqlOutput.getJSONArray("entries");
+            FeedItem[] outputArray = new FeedItem[sqlArray.length()];
+            for (int i = 0; i < sqlArray.length(); i++) {
+                JSONObject item = sqlArray.getJSONObject(i);
+                int userVote;
+                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (Email = '" + claims.getBody().getSubject() + "' AND PostID = '" + item.getString("PostID") + "')");
+                if (userVoteQueryJson.has("Vote")) {
+                    if (userVoteQueryJson.getBoolean("Vote")) {
+                        userVote = 1;
+                    } else {
+                        userVote = -1;
+                    }
+                } else {
+                    userVote = 0;
+                }
+                JSONObject media = new JSONObject(item.getString("Media"));
+                MediaPost mediaPost;
+                if (media.has("text")) {
+                    mediaPost = new TextPost(media.getJSONObject("text").getString("content"));
+                } else if (media.has("image")) {
+                    mediaPost = new ImagePost(media.getJSONObject("image").getString("url"));
+                } else if (media.has("video")) {
+                    mediaPost = new VideoPost(media.getJSONObject("video").getString("url"));
+                } else {
+                    throw new JSONException("Media is not of type text, image or video");
+                }
+                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("Submitter"), userVote, item.getInt("Votes") - userVote, item.getInt("PostID"));
+            }
+            sqlClient.terminate();
+            return GSON.toJson(outputArray);
+        } catch (JSONException e) {
+            sqlClient.terminate();
+            System.out.println("JSONException: " + e.getMessage());
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (UnsupportedEncodingException e) {
+            sqlClient.terminate();
+            System.out.println("UnsupportedEncodingException: " + e.getMessage());
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (IOException e) {
+            return "{\"error\": \"internal server error\"}";
         }
     }
 

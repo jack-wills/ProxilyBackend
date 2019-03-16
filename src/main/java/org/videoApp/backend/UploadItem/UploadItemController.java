@@ -9,7 +9,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.videoApp.backend.SQLClient;
+import org.videoApp.backend.TokenClient;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -40,9 +42,7 @@ public class UploadItemController {
             } else {
                 return "{\"error\": \"internal server error\"}";
             }
-            Jws<Claims> claims = Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
-                    .parseClaimsJws(request.getJwt());
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONObject sqlPutJson = new JSONObject();
             sqlPutJson.put("Media", media.toString());
             sqlPutJson.put("Submitter", claims.getBody().get("firstName") + " " + claims.getBody().get("lastName"));
@@ -59,6 +59,8 @@ public class UploadItemController {
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
             sqlClient.terminate();
+            return "{\"error\": \"internal server error\"}";
+        } catch (IOException e) {
             return "{\"error\": \"internal server error\"}";
         }
     }

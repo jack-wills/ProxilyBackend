@@ -1,10 +1,9 @@
 package org.videoApp.backend.auth;
 
-
-public class CheckTokenRequest {
+public class RegisterFacebookAccountRequest {
     private String token;
 
-    public CheckTokenRequest(final String token) {
+    public RegisterFacebookAccountRequest(final String token) {
         this.token = token;
     }
 
