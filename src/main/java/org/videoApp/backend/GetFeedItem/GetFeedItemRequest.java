@@ -2,9 +2,11 @@ package org.videoApp.backend.GetFeedItem;
 
 
 public class GetFeedItemRequest {
-    private String latitude, longitude, getPostsFrom, getPostsTo, jwt;
+    private String jwt;
+    private float latitude, longitude;
+    private int getPostsFrom, getPostsTo;
 
-    public GetFeedItemRequest(final String latitude, final String longitude, final String getPostsFrom, final String getPostsTo, final String jwt) {
+    public GetFeedItemRequest(final float latitude, final float longitude, final int getPostsFrom, final int getPostsTo, final String jwt) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.getPostsFrom = getPostsFrom;
@@ -12,19 +14,19 @@ public class GetFeedItemRequest {
         this.jwt = jwt;
     }
 
-    public String getLatitude() {
+    public float getLatitude() {
         return latitude;
     }
 
-    public String getLongitude() {
+    public float getLongitude() {
         return longitude;
     }
 
-    public String getGetPostsFrom() {
+    public int getGetPostsFrom() {
         return getPostsFrom;
     }
 
-    public String getGetPostsTo() {
+    public int getGetPostsTo() {
         return getPostsTo;
     }
 

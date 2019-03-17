@@ -22,20 +22,22 @@ public class GetFeedController {
     @RequestMapping("/getPopularFeedItems")
     public String getPopularFeedItems(@RequestBody GetFeedItemRequest request) {
         SQLClient sqlClient = new SQLClient();
-        String sqlCommand = getSQLQuery(request.getLatitude(), request.getLongitude(), "Votes DESC", request.getGetPostsFrom(), request.getGetPostsTo());
-        JSONObject sqlOutput = sqlClient.getRows(sqlCommand);
-        if (sqlOutput.has("error")) {
-            sqlClient.terminate();
-            return sqlOutput.toString();
-        }
         try {
+            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Votes DESC", request.getGetPostsFrom(), request.getGetPostsTo());
+            if (sqlOutput.has("error")) {
+                sqlClient.terminate();
+                return sqlOutput.toString();
+            }
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
                 int userVote;
-                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (Email = '" + claims.getBody().getSubject() + "' AND PostID = '" + item.getString("PostID") + "')");
+                JSONArray values = new JSONArray();
+                values.put(claims.getBody().getSubject());
+                values.put(item.getString("PostID"));
+                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (UserID = ? AND PostID = ?)", values);
                 if (userVoteQueryJson.has("Vote")) {
                     if (userVoteQueryJson.getBoolean("Vote")) {
                         userVote = 1;
@@ -56,7 +58,7 @@ public class GetFeedController {
                 } else {
                     throw new JSONException("Media is not of type text, image or video");
                 }
-                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("Submitter"), userVote, item.getInt("Votes") - userVote, item.getInt("PostID"));
+                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("FirstName") + " " + item.getString("LastName"), userVote, item.getInt("Votes") - userVote, item.getInt("PostID"));
             }
             sqlClient.terminate();
             return GSON.toJson(outputArray);
@@ -76,20 +78,22 @@ public class GetFeedController {
     @RequestMapping("/getLatestFeedItems")
     public String getLatestFeedItems(@RequestBody GetFeedItemRequest request) {
         SQLClient sqlClient = new SQLClient();
-        String sqlCommand = getSQLQuery(request.getLatitude(), request.getLongitude(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
-        JSONObject sqlOutput = sqlClient.getRows(sqlCommand);
-        if (sqlOutput.has("error")) {
-            sqlClient.terminate();
-            return sqlOutput.toString();
-        }
         try {
+            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
+            if (sqlOutput.has("error")) {
+                sqlClient.terminate();
+                return sqlOutput.toString();
+            }
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
                 int userVote;
-                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (Email = '" + claims.getBody().getSubject() + "' AND PostID = '" + item.getString("PostID") + "')");
+                JSONArray values = new JSONArray();
+                values.put(claims.getBody().getSubject());
+                values.put(item.getString("PostID"));
+                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (UserID = ? AND PostID = ?)", values);
                 if (userVoteQueryJson.has("Vote")) {
                     if (userVoteQueryJson.getBoolean("Vote")) {
                         userVote = 1;
@@ -110,7 +114,7 @@ public class GetFeedController {
                 } else {
                     throw new JSONException("Media is not of type text, image or video");
                 }
-                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("Submitter"), userVote, item.getInt("Votes") - userVote, item.getInt("PostID"));
+                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("FirstName") + " " + item.getString("LastName"), userVote, item.getInt("Votes") - userVote, item.getInt("PostID"));
             }
             sqlClient.terminate();
             return GSON.toJson(outputArray);
@@ -127,20 +131,28 @@ public class GetFeedController {
         }
     }
 
-    public String getSQLQuery(final String latitude, final String longitude, final String orderBy, final String searchStart, final String searchEnd) {
-        return "SELECT\n" +
-                "    *, (\n" +
+    public JSONObject getSQLQuery(final SQLClient sqlClient, final float latitude, final float longitude, final String orderBy, final int searchStart, final int searchEnd) throws JSONException {
+        String sqlCommand =  "SELECT\n" +
+                "    posts.*, users.FirstName, users.LastName, (\n" +
                 "      3959 * acos (\n" +
-                "      cos ( radians(" + latitude + ") )\n" +
+                "      cos ( radians(?) )\n" +
                 "      * cos( radians( Latitude ) )\n" +
-                "      * cos( radians( Longitude ) - radians(" + longitude + ") )\n" +
-                "      + sin ( radians(" + latitude + ") )\n" +
+                "      * cos( radians( Longitude ) - radians(?) )\n" +
+                "      + sin ( radians(?) )\n" +
                 "      * sin( radians( Latitude ) )\n" +
                 "    )\n" +
                 ") AS distance\n" +
                 "FROM posts\n" +
+                "INNER JOIN users ON posts.UserID = users.UserID\n" +
                 "HAVING distance < 5\n" +
                 "ORDER BY " + orderBy + "\n" +
-                "LIMIT " + searchStart + " , " + searchEnd + ";";
+                "LIMIT ? , ?;";
+        JSONArray values = new JSONArray();
+        values.put(latitude);
+        values.put(longitude);
+        values.put(latitude);
+        values.put(searchStart);
+        values.put(searchEnd);
+        return sqlClient.getRows(sqlCommand, values);
     }
 }

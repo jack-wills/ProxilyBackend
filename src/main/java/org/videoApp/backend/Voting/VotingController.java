@@ -31,7 +31,10 @@ public class VotingController {
         try {
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             int previousVote;
-            JSONObject result = sqlClient.getRow("SELECT Vote FROM users_votes WHERE Email='" + claims.getBody().getSubject() + "' AND PostID='" + request.getPostID() + "';");
+            JSONArray values = new JSONArray();
+            values.put(claims.getBody().getSubject());
+            values.put(request.getPostID());
+            JSONObject result = sqlClient.getRow("SELECT Vote FROM users_votes WHERE UserID=? AND PostID=?;", values);
             if (result.has("error") && result.get("error").equals("OBJECT_NOT_FOUND")) {
                 previousVote = 0;
             } else if (result.has("Vote")) {
@@ -46,10 +49,10 @@ public class VotingController {
             int voteDifference = request.getVote() - previousVote;
             sqlClient.executeCommand("UPDATE posts SET Votes = Votes + " + voteDifference + " WHERE PostID='" + request.getPostID() + "';");
             if (request.getVote() == 0) {
-                sqlClient.executeCommand("DELETE FROM users_votes WHERE Email='" + claims.getBody().getSubject() + "' AND PostID='" + request.getPostID() + "';");
+                sqlClient.executeCommand("DELETE FROM users_votes WHERE UserID='" + claims.getBody().getSubject() + "' AND PostID='" + request.getPostID() + "';");
             } else {
                 JSONObject json = new JSONObject();
-                json.put("Email", claims.getBody().getSubject());
+                json.put("UserID", claims.getBody().getSubject());
                 json.put("PostID", request.getPostID());
                 if (request.getVote() == -1) {
                     json.put("Vote", 0);

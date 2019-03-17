@@ -1,6 +1,7 @@
 package org.videoApp.backend.Comments;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
@@ -26,8 +27,10 @@ public class CommentsController {
     @RequestMapping("/getComments")
     public String getComments(@RequestBody GetCommentsRequest request) {
         SQLClient sqlClient = new SQLClient();
-        String sqlCommand = "SELECT * FROM comments WHERE PostID=" + request.getPostID() + " ORDER BY Votes DESC";
-        JSONObject sqlOutput = sqlClient.getRows(sqlCommand);
+        String sqlCommand = "SELECT comments.*, users.FirstName, users.LastName FROM comments\n INNER JOIN users ON comments.UserID = users.UserID\n WHERE PostID=?\n ORDER BY Votes DESC;";
+        JSONArray values = new JSONArray();
+        values.put(request.getPostID());
+        JSONObject sqlOutput = sqlClient.getRows(sqlCommand, values);
         try {
             if (sqlOutput.has("error")) {
                 sqlClient.terminate();
@@ -42,7 +45,11 @@ public class CommentsController {
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
                 int userVote;
-                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM comments_votes WHERE (Email='" + claims.getBody().getSubject() + "' AND CommentID='" + item.getString("CommentID") + "')");
+                sqlCommand = "SELECT * FROM comments_votes WHERE (UserID=? AND CommentID=?)";
+                values = new JSONArray();
+                values.put(claims.getBody().getSubject());
+                values.put(item.getString("CommentID"));
+                JSONObject userVoteQueryJson = sqlClient.getRow(sqlCommand, values);
                 if (userVoteQueryJson.has("Vote")) {
                     if (userVoteQueryJson.getBoolean("Vote")) {
                         userVote = 1;
@@ -52,7 +59,7 @@ public class CommentsController {
                 } else {
                     userVote = 0;
                 }
-                outputArray[i] = new CommentItem(i + 1, item.getString("Content"), item.getString("Submitter"), userVote, item.getInt("Votes")-userVote, item.getInt("CommentID"));
+                outputArray[i] = new CommentItem(i + 1, item.getString("Content"), item.getString("FirstName") + " " + item.getString("LastName"), userVote, item.getInt("Votes")-userVote, item.getInt("CommentID"));
             }
             sqlClient.terminate();
             return GSON.toJson(outputArray);
@@ -78,7 +85,7 @@ public class CommentsController {
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONObject sqlPutJson = new JSONObject();
             sqlPutJson.put("Content", request.getContent());
-            sqlPutJson.put("Submitter", claims.getBody().get("firstName") + " " + claims.getBody().get("lastName"));
+            sqlPutJson.put("UserID", claims.getBody().getSubject());
             sqlPutJson.put("Votes", 0);
             sqlPutJson.put("PostID", request.getPostID());
             sqlPutJson.put("Timestamp", formmat1.format(ldt));
@@ -102,7 +109,11 @@ public class CommentsController {
         try {
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             int previousVote;
-            JSONObject result = sqlClient.getRow("SELECT Vote FROM comments_votes WHERE Email='" + claims.getBody().getSubject() + "' AND CommentID='" + request.getCommentID() + "';");
+            String sqlCommand = "SELECT Vote FROM comments_votes WHERE UserID=? AND CommentID=?;";
+            JSONArray values = new JSONArray();
+            values.put(claims.getBody().getSubject());
+            values.put(request.getCommentID());
+            JSONObject result = sqlClient.getRow(sqlCommand, values);
             if (result.has("error") && result.get("error").equals("OBJECT_NOT_FOUND")) {
                 previousVote = 0;
             } else if (result.has("Vote")) {
@@ -117,10 +128,10 @@ public class CommentsController {
             int voteDifference = request.getVote() - previousVote;
             sqlClient.executeCommand("UPDATE comments SET Votes = Votes + " + voteDifference + " WHERE CommentID='" + request.getCommentID() + "';");
             if (request.getVote() == 0) {
-                sqlClient.executeCommand("DELETE FROM comments_votes WHERE Email='" + claims.getBody().getSubject() + "' AND CommentID='" + request.getCommentID() + "';");
+                sqlClient.executeCommand("DELETE FROM comments_votes WHERE UserID='" + claims.getBody().getSubject() + "' AND CommentID='" + request.getCommentID() + "';");
             } else {
                 JSONObject json = new JSONObject();
-                json.put("Email", claims.getBody().getSubject());
+                json.put("UserID", claims.getBody().getSubject());
                 json.put("CommentID", request.getCommentID());
                 if (request.getVote() == -1) {
                     json.put("Vote", 0);

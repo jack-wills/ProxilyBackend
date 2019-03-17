@@ -2,14 +2,15 @@ package org.videoApp.backend.Comments;
 
 
 public class GetCommentsRequest {
-    private String postID, jwt;
+    private String jwt;
+    private int postID;
 
-    public GetCommentsRequest(final String postID, final String jwt) {
+    public GetCommentsRequest(final int postID, final String jwt) {
         this.postID = postID;
         this.jwt = jwt;
     }
 
-    public String getPostID() {
+    public int getPostID() {
         return postID;
     }
 

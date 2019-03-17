@@ -4,6 +4,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -28,16 +29,20 @@ public class AuthController {
     public String signin(@RequestBody SignInRequest request) {
         SQLClient sqlClient = new SQLClient();
         PasswordEncryptionService passwordEncryptionService = new PasswordEncryptionService();
-        JSONObject itemReturn = sqlClient.getRow("SELECT * FROM users WHERE email='" + request.getEmail() + "'");
+        String sqlCommand = "SELECT * FROM users WHERE email=?";
+        JSONArray values = new JSONArray();
+        values.put(request.getEmail());
+        JSONObject itemReturn = sqlClient.getRow(sqlCommand, values);
         try {
             String hashedPass = itemReturn.getString("HashedPassword");
             String salt = itemReturn.getString("Salt");
             JSONObject response = new JSONObject();
             if (passwordEncryptionService.authenticate(request.getPassword(), hashedPass, salt)) {
                 String jws = Jwts.builder()
-                        .setSubject(request.getEmail())
+                        .setSubject(itemReturn.getString("UserID"))
                         .claim("firstName", itemReturn.getString("FirstName"))
                         .claim("lastName", itemReturn.getString("LastName"))
+                        .claim("email", request.getEmail())
                         .setIssuedAt(new Date())
                         .signWith(
                                 SignatureAlgorithm.HS256,
@@ -69,10 +74,9 @@ public class AuthController {
         try {
             JSONObject request = new JSONObject(requestString);
             Jws<Claims> claims = TokenClient.decodeToken(request.getString("token"));
-            claims.getBody().getSubject();
             JSONObject response = new JSONObject();
             response.put("name", String.class.cast(claims.getBody().get("firstName")) + " " + String.class.cast(claims.getBody().get("lastName")));
-            response.put("email", claims.getBody().getSubject());
+            response.put("email", claims.getBody().get("email"));
             return response.toString();
         } catch (JSONException e) {
             return "{\"error\": \"internal server error\"}";
@@ -90,7 +94,10 @@ public class AuthController {
             JSONObject request = new JSONObject(requestString);
             JSONObject sqlPutJson = new JSONObject();
             Profile profile = TokenClient.getFacebookUserInfo(request.getString("token"));
-            JSONObject itemReturn = sqlClient.getRow("SELECT * FROM users WHERE email='" + profile.getEmail() + "'");
+            String sqlCommand = "SELECT * FROM users WHERE email=?";
+            JSONArray values = new JSONArray();
+            values.put(profile.getEmail());
+            JSONObject itemReturn = sqlClient.getRow(sqlCommand, values);
             if (itemReturn.has("error") && itemReturn.get("error").equals("OBJECT_NOT_FOUND")) {
                 sqlPutJson.put("Email", profile.getEmail());
                 String lastName = profile.getName().substring(profile.getName().lastIndexOf(' ') + 1).trim();
@@ -131,12 +138,15 @@ public class AuthController {
             sqlClient.terminate();
             return "{error: \"internal server error\"}";
         }
-
+        JSONArray values = new JSONArray();
+        values.put(request.getEmail());
+        JSONObject user = sqlClient.getRow("SELECT * FROM users WHERE Email=?", values);
         try {
             String jws = Jwts.builder()
-                    .setSubject(request.getEmail())
+                    .setSubject(user.getString("UserID"))
                     .claim("firstName",request.getFirstName())
                     .claim("lastName", request.getLastName())
+                    .claim("email", request.getEmail())
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis()+86400000L))
                     .signWith(

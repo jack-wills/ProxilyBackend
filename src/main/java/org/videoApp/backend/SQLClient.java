@@ -44,7 +44,7 @@ public class SQLClient {
     public SQLClient() {
         try {
             // db parameters
-            String url       = "jdbc:mysql://localhost:3306/videoApp?autoReconnect=true&useSSL=false";
+            String url       = "jdbc:mysql://localhost:3306/Proxily?autoReconnect=true&useSSL=false";
             String user      = "root";
             String password  = "";
 
@@ -65,10 +65,16 @@ public class SQLClient {
         }
     }
 
-    public JSONObject getRow(String command) {
+    public JSONObject getRow(String command, JSONArray values) {
         try {
-            Statement stmt = conn.createStatement();
-            ResultSet rset = stmt.executeQuery(command);
+            if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
+                throw new Exception("The number of values does not match the statement: " + command);
+            }
+            PreparedStatement stmt = conn.prepareStatement(command);
+            for (int i = 0; i < values.length(); i++) {
+                stmt.setObject(i+1, values.get(i));
+            }
+            ResultSet rset = stmt.executeQuery();
             if (rset.next() == false) {
                 JSONObject json = new JSONObject();
                 json.put("error", "OBJECT_NOT_FOUND");
@@ -81,10 +87,16 @@ public class SQLClient {
         }
     }
 
-    public JSONObject getRows(String command) {
+    public JSONObject getRows(String command, JSONArray values) {
         try {
-            Statement stmt = conn.createStatement();
-            ResultSet rset = stmt.executeQuery(command);
+            if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
+                throw new Exception("The number of values does not match the statement: " + command);
+            }
+            PreparedStatement stmt = conn.prepareStatement(command);
+            for (int i = 0; i < values.length(); i++) {
+                stmt.setObject(i+1, values.get(i));
+            }
+            ResultSet rset = stmt.executeQuery();
             JSONObject json = getEntitiesFromResultSet(rset);
             return json;
         } catch (Exception e) {

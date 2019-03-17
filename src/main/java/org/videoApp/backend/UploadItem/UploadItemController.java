@@ -45,7 +45,7 @@ public class UploadItemController {
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONObject sqlPutJson = new JSONObject();
             sqlPutJson.put("Media", media.toString());
-            sqlPutJson.put("Submitter", claims.getBody().get("firstName") + " " + claims.getBody().get("lastName"));
+            sqlPutJson.put("UserID", claims.getBody().getSubject());
             sqlPutJson.put("Votes", 0);
             sqlPutJson.put("Latitude", Float.valueOf(request.getLatitude()));
             sqlPutJson.put("Longitude", Float.valueOf(request.getLongitude()));
