@@ -144,8 +144,8 @@ public class AuthController {
         try {
             String jws = Jwts.builder()
                     .setSubject(user.getString("UserID"))
-                    .claim("firstName",request.getFirstName())
-                    .claim("lastName", request.getLastName())
+                    .claim("firstName",request.getFirstName().substring(0, 1).toUpperCase() + request.getFirstName().substring(1))
+                    .claim("lastName", request.getLastName().substring(0, 1).toUpperCase() + request.getLastName().substring(1))
                     .claim("email", request.getEmail())
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis()+86400000L))

@@ -16,6 +16,7 @@ import org.videoApp.backend.TokenClient;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -27,7 +28,7 @@ public class CommentsController {
     @RequestMapping("/getComments")
     public String getComments(@RequestBody GetCommentsRequest request) {
         SQLClient sqlClient = new SQLClient();
-        String sqlCommand = "SELECT comments.*, users.FirstName, users.LastName FROM comments\n INNER JOIN users ON comments.UserID = users.UserID\n WHERE PostID=?\n ORDER BY Votes DESC;";
+        String sqlCommand = "SELECT comments.*, users.FirstName, users.LastName FROM comments\n INNER JOIN users ON comments.UserID = users.UserID\n WHERE PostID=?\n ORDER BY Votes*0.7 + (1/(NOW() - Timestamp))*0.3 DESC;";
         JSONArray values = new JSONArray();
         values.put(request.getPostID());
         JSONObject sqlOutput = sqlClient.getRows(sqlCommand, values);
@@ -79,7 +80,7 @@ public class CommentsController {
     @RequestMapping("/postComment")
     public String postComment(@RequestBody PostCommentRequest request) {
         SQLClient sqlClient = new SQLClient();
-        LocalDateTime ldt = LocalDateTime.now().plusDays(1);
+        LocalDateTime ldt = LocalDateTime.now(Clock.systemUTC());
         DateTimeFormatter formmat1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         try {
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());

@@ -13,6 +13,7 @@ import org.videoApp.backend.TokenClient;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -25,7 +26,7 @@ public class UploadItemController {
     @RequestMapping("/uploadItem")
     public String uploadItem(@RequestBody UploadItemRequest request) {
         SQLClient sqlClient = new SQLClient();
-        LocalDateTime ldt = LocalDateTime.now().plusDays(1);
+        LocalDateTime ldt = LocalDateTime.now(Clock.systemUTC());
         DateTimeFormatter formmat1 = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         try {
             JSONObject media = new JSONObject();

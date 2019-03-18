@@ -23,7 +23,7 @@ public class GetFeedController {
     public String getPopularFeedItems(@RequestBody GetFeedItemRequest request) {
         SQLClient sqlClient = new SQLClient();
         try {
-            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Votes DESC", request.getGetPostsFrom(), request.getGetPostsTo());
+            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Votes*0.7 + (1/(NOW() - Timestamp))*0.3 DESC", request.getGetPostsFrom(), request.getGetPostsTo());
             if (sqlOutput.has("error")) {
                 sqlClient.terminate();
                 return sqlOutput.toString();
