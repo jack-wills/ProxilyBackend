@@ -18,7 +18,7 @@ INSERT INTO `users` VALUES
 
 CREATE TABLE posts (
     PostID int NOT NULL AUTO_INCREMENT,
-    Media varchar(255) NOT NULL,
+    Media varchar(2047) NOT NULL,
     UserID int NOT NULL,
     Votes int DEFAULT 0,
     Latitude float NOT NULL,
@@ -40,7 +40,7 @@ CREATE TABLE users_votes (
 
 CREATE TABLE comments (
     CommentID int NOT NULL AUTO_INCREMENT,
-    Content varchar(255) NOT NULL,
+    Content varchar(2047) NOT NULL,
     UserID int NOT NULL,
     Votes int DEFAULT 0,
     PostID int NOT NULL,

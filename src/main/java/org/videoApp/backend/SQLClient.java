@@ -106,7 +106,6 @@ public class SQLClient {
 
     public void setRow(JSONObject command, String tableName, boolean override) {
         try {
-            Statement stmt = conn.createStatement();
             StringBuilder cmdBuilder = new StringBuilder();
             if (override) {
                 cmdBuilder.append("replace into " + tableName + " (");
@@ -115,44 +114,21 @@ public class SQLClient {
             }
             Iterator<String> itr = command.keys();
             for (int i = 0; i < command.length()-1; i++) {
-                String key = itr.next();
-                cmdBuilder.append(key + ", ");
+                cmdBuilder.append(itr.next() + ", ");
             }
-            String key = itr.next();
-            cmdBuilder.append(key + ")");
-            cmdBuilder.append(" values(");
-            Iterator<String> itr1 = command.keys();
+            cmdBuilder.append(itr.next() + ") values(");
             for (int i = 0; i < command.length()-1; i++) {
+                cmdBuilder.append("?, ");
+            }
+            cmdBuilder.append("?);");
+            PreparedStatement stmt = conn.prepareStatement(cmdBuilder.toString());
+
+            Iterator<String> itr1 = command.keys();
+            for (int i = 0; i < command.length(); i++) {
                 String key1 = itr1.next();
-                Object object = command.get(key1);
-                if (object instanceof String) {
-                    cmdBuilder.append("\'" + command.getString(key1) + "\', ");
-                    continue;
-                }
-                if (object instanceof Long) {
-                    cmdBuilder.append("\'" + command.get(key1) + "\', ");
-                    continue;
-                }
-                if (object instanceof Float) {
-                    cmdBuilder.append("\'" + command.get(key1) + "\', ");
-                    continue;
-                }
-                if (object instanceof Integer) {
-                    cmdBuilder.append("\'" + command.getInt(key1) + "\', ");
-                    continue;
-                }
+                stmt.setObject(i+1, command.get(key1));
             }
-            String key1 = itr1.next();
-            Object object = command.get(key1);
-            if (object instanceof String) {
-                cmdBuilder.append("\"" + command.getString(key1) + "\")");
-            }
-            if (object instanceof Integer) {
-                cmdBuilder.append(command.getInt(key1) + ")");
-            }
-            String cmd = cmdBuilder.toString();
-            System.out.println(cmd);
-            stmt.executeUpdate(cmd);
+            stmt.executeUpdate();
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage());
         }

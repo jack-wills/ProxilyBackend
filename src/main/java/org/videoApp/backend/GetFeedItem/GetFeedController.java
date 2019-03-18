@@ -144,6 +144,7 @@ public class GetFeedController {
                 ") AS distance\n" +
                 "FROM posts\n" +
                 "INNER JOIN users ON posts.UserID = users.UserID\n" +
+                "WHERE FileUploaded = 1\n" +
                 "HAVING distance < 5\n" +
                 "ORDER BY " + orderBy + "\n" +
                 "LIMIT ? , ?;";
