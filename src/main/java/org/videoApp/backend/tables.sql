@@ -58,3 +58,13 @@ CREATE TABLE comments_votes (
     FOREIGN KEY (CommentID) REFERENCES comments(CommentID),
     FOREIGN KEY (UserID) REFERENCES users(UserID)
 );
+
+CREATE TABLE saved_locations (
+    SavedLocationID int NOT NULL AUTO_INCREMENT,
+    UserID int NOT NULL,
+    Name varchar(30) NOT NULL,
+    Latitude float NOT NULL,
+    Longitude float NOT NULL,
+    PRIMARY KEY (SavedLocationID),
+    FOREIGN KEY (UserID) REFERENCES users(UserID)
+);

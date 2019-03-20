@@ -87,6 +87,21 @@ public class SQLClient {
         }
     }
 
+    public int deleteRows(String command, JSONArray values) {
+        try {
+            if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
+                throw new Exception("The number of values does not match the statement: " + command);
+            }
+            PreparedStatement stmt = conn.prepareStatement(command);
+            for (int i = 0; i < values.length(); i++) {
+                stmt.setObject(i+1, values.get(i));
+            }
+            return stmt.executeUpdate();
+        } catch (Exception e) {
+            throw new IllegalStateException(e.getMessage());
+        }
+    }
+
     public JSONObject getRows(String command, JSONArray values) {
         try {
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
@@ -103,8 +118,11 @@ public class SQLClient {
             throw new IllegalStateException(e.getMessage());
         }
     }
-
     public void setRow(JSONObject command, String tableName, boolean override) {
+        setRow(command, tableName, override, false);
+    }
+
+    public int setRow(JSONObject command, String tableName, boolean override, boolean returnID) {
         try {
             StringBuilder cmdBuilder = new StringBuilder();
             if (override) {
@@ -120,8 +138,13 @@ public class SQLClient {
             for (int i = 0; i < command.length()-1; i++) {
                 cmdBuilder.append("?, ");
             }
+            PreparedStatement stmt;
             cmdBuilder.append("?);");
-            PreparedStatement stmt = conn.prepareStatement(cmdBuilder.toString());
+            if (returnID) {
+                stmt = conn.prepareStatement(cmdBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
+            } else {
+                stmt = conn.prepareStatement(cmdBuilder.toString());
+            }
 
             Iterator<String> itr1 = command.keys();
             for (int i = 0; i < command.length(); i++) {
@@ -129,6 +152,12 @@ public class SQLClient {
                 stmt.setObject(i+1, command.get(key1));
             }
             stmt.executeUpdate();
+            if (!returnID) {
+                return 0;
+            }
+            ResultSet rset = stmt.getGeneratedKeys();
+            rset.next();
+            return rset.getInt(1);
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage());
         }
