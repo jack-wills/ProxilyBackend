@@ -1,0 +1,14 @@
+sudo: required
+language: java
+jdk: oraclejdk8
+deploy:
+  matrix:
+  - provider: codedeploy
+    revision_type: github
+    access_key_id: AKIAIVJTKGATJD3GIZQA
+    secret_access_key: YOUR AWS SECRET KEY
+    application: proxily
+    deployment_group: proxily-deployment-group
+    region: us-east-1
+  secret_access_key:
+    secure: koau9BmdY3QVxjj+2ZqGJThU4p3RX66UzaFlgB0dn86gaz/N7nGWkczzqKTIv2jscGKHXnycFjO5DVc7egIutAMzzRBa8+tsZMKd8Yzl0C73OuBTCStotSPHmA5DXqz+l0+eC1ZB/XWW4Kx+yzRS8jWoTvJ87VLbrG0YFSZv5oIiGvhdtWnq4K/839O8cg3FmXmqOWZKjFrYQPhGQxnhBTUap7xS2ipGDu61iLkSK+rLfu/fphphCUswwRAer8vyY1Aa1IIMiYGQrsCNQRxylw9YaUMgXk7R56pZ5s0f9ULHTVXJbKKm7fZEq76h/k5EVxkftoRGAmZz5V8dfLKFnk7vrig8bZS/QtJe6DwULlOTeMvT+g3Mm1D66kk7Ipv8YlwFTQSZFUfuEfr1Th/Y9SpQsGULUIBBEX5GynuB7ctCJWdHeHgH2T1XRoV9Bm9v47IngdzbIuqHzAsXiswNiMkkcmtFr0kYIcWxcCFiKeDVM0he1dRwlb88jq4VbvhS+eUSSkoDQULxDkCyyKb2+Je6qaCBYVSv5mAPyxsvEOXisdaYMO+b9Se6+YnztDoAD0yI71I2tSZ1ddmFpsWavSaEyFQeW/BaDTH6jOcRBrZK7RW5zdXdmkdSALzFN3gnBGavKsSjyxy7nPDuZ04ji/h/+vMugtx1u7FQ8HK9HBo=
