@@ -9,7 +9,7 @@ deploy:
   region: us-east-1
   local_dir: target
   skip_cleanup: true
-  on:
+  on: &1
     repo: jack53519/ProxilyBackend
 - provider: codedeploy
   access_key_id: $AWS_ACCESS_KEY
@@ -18,7 +18,9 @@ deploy:
   key: CombinedService.jar
   deployment_group: proxily-deployment-group
   bucket: code-deploy-us-east-1-beta
-  bundle_type: jar
+  bundle_type: zip
+  on: *1
+  wait-until-deployed: true
 
 install: true
 script: mvn clean install
