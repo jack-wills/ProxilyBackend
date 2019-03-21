@@ -1,58 +1,76 @@
 package org.videoApp.backend;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.Regions;
+import com.amazonaws.services.rds.AmazonRDS;
+import com.amazonaws.services.rds.AmazonRDSClientBuilder;
+import com.amazonaws.services.rds.auth.GetIamAuthTokenRequest;
+import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
+import com.amazonaws.services.rds.model.DBInstance;
+import com.amazonaws.services.rds.model.DescribeDBInstancesRequest;
+import com.amazonaws.services.rds.model.DescribeDBInstancesResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.math.BigDecimal;
-import java.sql.*;
-import java.sql.Date;
-import java.util.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.URL;
+import java.security.KeyStore;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Properties;
 
 public class SQLClient {
-    private Connection conn = null;
+    private Connection conn;
+    private Region region = Regions.getCurrentRegion();
 
-    public static Map<String, Class> TYPE;
+    private static String SSL_CERTIFICATE;
 
-    static {
-        TYPE = new HashMap<String, Class>();
-
-        TYPE.put("INTEGER", Integer.class);
-        TYPE.put("INT", Integer.class);
-        TYPE.put("TINYINT", Byte.class);
-        TYPE.put("SMALLINT", Short.class);
-        TYPE.put("BIGINT", Long.class);
-        TYPE.put("REAL", Float.class);
-        TYPE.put("FLOAT", Float.class);
-        TYPE.put("DOUBLE", Double.class);
-        TYPE.put("DECIMAL", BigDecimal.class);
-        TYPE.put("NUMERIC", BigDecimal.class);
-        TYPE.put("BOOLEAN", Boolean.class);
-        TYPE.put("BOOL", Boolean.class);
-        TYPE.put("BIT", Boolean.class);
-        TYPE.put("CHAR", String.class);
-        TYPE.put("VARCHAR", String.class);
-        TYPE.put("LONGVARCHAR", String.class);
-        TYPE.put("DATE", Date.class);
-        TYPE.put("TIME", Time.class);
-        TYPE.put("TIMESTAMP", Timestamp.class);
-        TYPE.put("DATETIME", Timestamp.class);
-        TYPE.put("SERIAL",Integer.class);
-        // ...
-    }
+    private static final String KEY_STORE_TYPE = "JKS";
+    private static final String KEY_STORE_PROVIDER = "SUN";
+    private static final String KEY_STORE_FILE_PREFIX = "sys-connect-via-ssl-test-cacerts";
+    private static final String KEY_STORE_FILE_SUFFIX = ".jks";
+    private static final String DEFAULT_KEY_STORE_PASSWORD = "changeit";
 
     public SQLClient() {
         try {
-            // db parameters
-            String url       = "jdbc:mysql://localhost:3306/Proxily?autoReconnect=true&useSSL=false";
-            String user      = "root";
-            String password  = "";
-
             // create a connection to the database
-            conn = DriverManager.getConnection(url, user, password);
+            if (region == null) {
+                String url       = "jdbc:mysql://localhost:3306/Proxily?autoReconnect=true&useSSL=false";
+                String user      = "root";
+                String password  = "";
+                conn = DriverManager.getConnection(url, user, password);
+            } else {
+                SSL_CERTIFICATE = "rds-ca-2015-" +  Regions.getCurrentRegion().toString() + ".pem";
+                AmazonRDS rdsClient = AmazonRDSClientBuilder
+                        .standard()
+                        .withCredentials(new DefaultAWSCredentialsProviderChain())
+                        .withRegion(region.getName())
+                        .build();
 
-        } catch(SQLException e) {
+                DescribeDBInstancesRequest request = new DescribeDBInstancesRequest();
+                DescribeDBInstancesResult result = rdsClient.describeDBInstances(request);
+                List<DBInstance> list = result.getDBInstances();
+                conn = getDBConnectionUsingIam(list.get(0).getEndpoint().getAddress(),
+                        list.get(0).getEndpoint().getPort(),
+                        "admin");
+            }
+
+        } catch(Exception e) {
             System.out.println(e.getMessage());
+            throw new IllegalStateException(e.getMessage());
         }
     }
 
@@ -184,8 +202,7 @@ public class SQLClient {
         int columnCount = metaData.getColumnCount();
         JSONObject json = new JSONObject();
         for (int i = 1; i <= columnCount; ++i) {
-            Class castType = SQLClient.TYPE.get(metaData.getColumnTypeName(i).toUpperCase());
-            json.put(metaData.getColumnName(i), resultSet.getObject(i, castType));
+            json.put(metaData.getColumnName(i), resultSet.getObject(i));
         }
         return json;
     }
@@ -197,8 +214,108 @@ public class SQLClient {
             if (conn != null) {
                 conn.close();
             }
+            clearSslProperties();
         } catch(SQLException ex) {
             System.out.println(ex.getMessage());
         }
     }
+
+    /**
+     * This method returns a connection to the db instance authenticated using IAM Database Authentication
+     * @return
+     * @throws Exception
+     */
+    private static Connection getDBConnectionUsingIam(String hostname, int port, String user) throws Exception {
+        setSslProperties();
+        String url = "jdbc:mysql://" + hostname + ":" + port;
+        return DriverManager.getConnection(url, setMySqlConnectionProperties(hostname, port, user));
+    }
+
+    /**
+     * This method sets the mysql connection properties which includes the IAM Database Authentication token
+     * as the password. It also specifies that SSL verification is required.
+     * @return
+     */
+    private static Properties setMySqlConnectionProperties(String hostname, int port, String user) {
+        Properties mysqlConnectionProperties = new Properties();
+        mysqlConnectionProperties.setProperty("verifyServerCertificate","true");
+        mysqlConnectionProperties.setProperty("useSSL", "true");
+        mysqlConnectionProperties.setProperty("user", user);
+        mysqlConnectionProperties.setProperty("password",generateAuthToken(hostname, port, user));
+        return mysqlConnectionProperties;
+    }
+
+    /**
+     * This method generates the IAM Auth Token.
+     * @return
+     */
+    private static String generateAuthToken(String hostname, int port, String user) {
+        RdsIamAuthTokenGenerator generator = RdsIamAuthTokenGenerator.builder()
+                .credentials(new DefaultAWSCredentialsProviderChain()).region(Regions.getCurrentRegion()).build();
+        return generator.getAuthToken(GetIamAuthTokenRequest.builder()
+                .hostname(hostname).port(port).userName(user).build());
+    }
+
+    /**
+     * This method sets the SSL properties which specify the key store file, its type and password:
+     * @throws Exception
+     */
+    private static void setSslProperties() throws Exception {
+        System.setProperty("javax.net.ssl.trustStore", createKeyStoreFile());
+        System.setProperty("javax.net.ssl.trustStoreType", KEY_STORE_TYPE);
+        System.setProperty("javax.net.ssl.trustStorePassword", DEFAULT_KEY_STORE_PASSWORD);
+    }
+
+    /**
+     * This method returns the path of the Key Store File needed for the SSL verification during the IAM Database Authentication to
+     * the db instance.
+     * @return
+     * @throws Exception
+     */
+    private static String createKeyStoreFile() throws Exception {
+        return createKeyStoreFile(createCertificate()).getPath();
+    }
+
+    /**
+     *  This method generates the SSL certificate
+     * @return
+     * @throws Exception
+     */
+    private static X509Certificate createCertificate() throws Exception {
+        CertificateFactory certFactory = CertificateFactory.getInstance("X.509");
+        URL url = new File(SSL_CERTIFICATE).toURI().toURL();
+        if (url == null) {
+            throw new Exception();
+        }
+        try (InputStream certInputStream = url.openStream()) {
+            return (X509Certificate) certFactory.generateCertificate(certInputStream);
+        }
+    }
+
+    /**
+     * This method creates the Key Store File
+     * @param rootX509Certificate - the SSL certificate to be stored in the KeyStore
+     * @return
+     * @throws Exception
+     */
+    private static File createKeyStoreFile(X509Certificate rootX509Certificate) throws Exception {
+        File keyStoreFile = File.createTempFile(KEY_STORE_FILE_PREFIX, KEY_STORE_FILE_SUFFIX);
+        try (FileOutputStream fos = new FileOutputStream(keyStoreFile.getPath())) {
+            KeyStore ks = KeyStore.getInstance(KEY_STORE_TYPE, KEY_STORE_PROVIDER);
+            ks.load(null);
+            ks.setCertificateEntry("rootCaCertificate", rootX509Certificate);
+            ks.store(fos, DEFAULT_KEY_STORE_PASSWORD.toCharArray());
+        }
+        return keyStoreFile;
+    }
+
+    /**
+     * This method clears the SSL properties.
+     */
+    private static void clearSslProperties() {
+        System.clearProperty("javax.net.ssl.trustStore");
+        System.clearProperty("javax.net.ssl.trustStoreType");
+        System.clearProperty("javax.net.ssl.trustStorePassword");
+    }
+
 }
