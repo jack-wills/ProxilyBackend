@@ -229,9 +229,8 @@ public class SQLClient {
         setSslProperties();
         String url = "jdbc:mysql://" + hostname + ":" + port + "/Proxily?autoReconnect=true&useSSL=false";
         System.out.println("jdbc url = " + url);
-        String pass = generateAuthToken(hostname, port, user);
-        System.out.println("pass = " + pass);
-        return DriverManager.getConnection(url, user, pass);
+        //String pass = generateAuthToken(hostname, port, user);
+        return DriverManager.getConnection(url, user, "password");
     }
 
     /**
