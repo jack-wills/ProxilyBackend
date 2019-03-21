@@ -227,9 +227,9 @@ public class SQLClient {
      */
     private static Connection getDBConnectionUsingIam(String hostname, int port, String user) throws Exception {
         setSslProperties();
-        String url = "jdbc:mysql://" + hostname + ":" + port;
+        String url = "jdbc:mysql://" + hostname + ":" + port + "/Proxily?autoReconnect=true&useSSL=false";
         System.out.println("jdbc url = " + url);
-        return DriverManager.getConnection(url, setMySqlConnectionProperties(hostname, port, user));
+        return DriverManager.getConnection(url, "admin", "password");
     }
 
     /**
