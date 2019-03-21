@@ -8,6 +8,7 @@ deploy:
   bucket: code-deploy-us-east-1-beta
   region: us-east-1
   local_dir: target
+  skip_cleanup: true
   on:
     repo: jack53519/ProxilyBackend
 - provider: codedeploy
