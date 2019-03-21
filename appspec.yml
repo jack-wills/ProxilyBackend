@@ -1,0 +1,12 @@
+version: 0.0
+os: linux
+files
+  - source: ./
+    destination: /var/
+hooks:
+  BeforeInstall:
+    - location: scripts/start-server.sh
+      runas: root
+  ApplicationStop:
+  - location: scripts/stop-server.sh
+    runas: root
