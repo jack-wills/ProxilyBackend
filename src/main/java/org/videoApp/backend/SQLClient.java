@@ -228,6 +228,7 @@ public class SQLClient {
     private static Connection getDBConnectionUsingIam(String hostname, int port, String user) throws Exception {
         setSslProperties();
         String url = "jdbc:mysql://" + hostname + ":" + port;
+        System.out.println("jdbc url = " + url);
         return DriverManager.getConnection(url, setMySqlConnectionProperties(hostname, port, user));
     }
 
@@ -238,8 +239,8 @@ public class SQLClient {
      */
     private static Properties setMySqlConnectionProperties(String hostname, int port, String user) {
         Properties mysqlConnectionProperties = new Properties();
-        mysqlConnectionProperties.setProperty("verifyServerCertificate","true");
-        mysqlConnectionProperties.setProperty("useSSL", "true");
+        mysqlConnectionProperties.setProperty("verifyServerCertificate","false");
+        mysqlConnectionProperties.setProperty("useSSL", "false");
         mysqlConnectionProperties.setProperty("user", user);
         mysqlConnectionProperties.setProperty("password",generateAuthToken(hostname, port, user));
         return mysqlConnectionProperties;
