@@ -1,13 +1,18 @@
 sudo: required
 language: java
 jdk: oraclejdk8
+
+cache:
+  directories:
+    - $HOME/.m2
+
 deploy:
 - provider: s3
   access_key_id: $AWS_ACCESS_KEY
   secret_access_key: $AWS_SECRET_KEY
   bucket: code-deploy-us-east-1-beta
   region: us-east-1
-  local_dir: target
+  local_dir: travis_upload
   skip_cleanup: true
   on: &1
     repo: jack53519/ProxilyBackend
@@ -15,7 +20,7 @@ deploy:
   access_key_id: $AWS_ACCESS_KEY
   secret_access_key: $AWS_SECRET_KEY
   application: proxily
-  key: CombinedService.jar
+  key: latest.zip
   deployment_group: proxily-deployment-group
   bucket: code-deploy-us-east-1-beta
   bundle_type: zip
@@ -23,4 +28,9 @@ deploy:
   wait-until-deployed: true
 
 install: true
-script: mvn clean install
+script:
+  - mvn clean install
+  - mv appspec.yml target/appspec.yml
+  - zip -r latest target/*
+  - mkdir -p travis_upload
+  - mv latest.zip travis_upload/latest.zip
