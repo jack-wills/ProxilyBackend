@@ -5,7 +5,7 @@ files:
     destination: /var/server/
 hooks:
   BeforeInstall:
-    - location: scripts/start-server.sh
+    - location: scripts/start-silent.sh
       runas: root
   ApplicationStop:
     - location: scripts/stop-server.sh
