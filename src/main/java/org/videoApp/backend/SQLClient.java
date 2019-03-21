@@ -65,7 +65,7 @@ public class SQLClient {
                 List<DBInstance> list = result.getDBInstances();
                 conn = getDBConnectionUsingIam(list.get(0).getEndpoint().getAddress(),
                         list.get(0).getEndpoint().getPort(),
-                        "admin");
+                        "backend");
             }
 
         } catch(Exception e) {
@@ -229,7 +229,9 @@ public class SQLClient {
         setSslProperties();
         String url = "jdbc:mysql://" + hostname + ":" + port + "/Proxily?autoReconnect=true&useSSL=false";
         System.out.println("jdbc url = " + url);
-        return DriverManager.getConnection(url, "backend", generateAuthToken(hostname, port, user));
+        String pass = generateAuthToken(hostname, port, user);
+        System.out.println("pass = " + pass);
+        return DriverManager.getConnection(url, user, pass);
     }
 
     /**
