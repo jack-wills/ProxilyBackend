@@ -4,7 +4,7 @@ files:
   - source: ./
     destination: /var/server/
 hooks:
-  BeforeInstall:
+  AfterInstall:
     - location: scripts/start-silent.sh
       runas: root
   ApplicationStop:

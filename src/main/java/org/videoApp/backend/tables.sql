@@ -2,6 +2,8 @@ DROP DATABASE IF EXISTS Proxily;
 CREATE DATABASE Proxily;
 USE Proxily;
 
+CREATE USER backend IDENTIFIED WITH AWSAuthenticationPlugin AS 'RDS';
+
 CREATE TABLE users (
     UserID int NOT NULL AUTO_INCREMENT,
     Email varchar(255) NOT NULL,
