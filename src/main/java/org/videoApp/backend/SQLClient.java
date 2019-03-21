@@ -242,7 +242,7 @@ public class SQLClient {
         mysqlConnectionProperties.setProperty("verifyServerCertificate","false");
         mysqlConnectionProperties.setProperty("useSSL", "false");
         mysqlConnectionProperties.setProperty("user", user);
-        mysqlConnectionProperties.setProperty("password",generateAuthToken(hostname, port, user));
+        mysqlConnectionProperties.setProperty("password","password");
         return mysqlConnectionProperties;
     }
 
