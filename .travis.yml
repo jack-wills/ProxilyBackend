@@ -31,6 +31,7 @@ install: true
 script:
   - mvn clean install
   - mv appspec.yml target/appspec.yml
+  - mv ./scripts target/scripts
   - cd target
   - zip -r latest *
   - mkdir -p travis_upload
