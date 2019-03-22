@@ -60,7 +60,13 @@ public class CommentsController {
                 } else {
                     userVote = 0;
                 }
-                outputArray[i] = new CommentItem(i + 1, item.getString("Content"), item.getString("FirstName") + " " + item.getString("LastName"), userVote, item.getInt("Votes")-userVote, item.getInt("CommentID"));
+                outputArray[i] = new CommentItem(i + 1,
+                        item.getString("Content"),
+                        item.getString("FirstName") + " " + item.getString("LastName"),
+                        item.getString("ProfilePicture"),
+                        userVote,
+                        item.getInt("Votes")-userVote,
+                        item.getInt("CommentID"));
             }
             sqlClient.terminate();
             return GSON.toJson(outputArray);

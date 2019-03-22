@@ -58,7 +58,13 @@ public class GetFeedController {
                 } else {
                     throw new JSONException("Media is not of type text, image or video");
                 }
-                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("FirstName") + " " + item.getString("LastName"), userVote, item.getInt("Votes") - userVote, item.getInt("PostID"));
+                outputArray[i] = new FeedItem(i+1,
+                        mediaPost,
+                        item.getString("FirstName") + " " + item.getString("LastName"),
+                        item.getString("ProfilePicture"),
+                        userVote,
+                        item.getInt("Votes") - userVote,
+                        item.getInt("PostID"));
             }
             sqlClient.terminate();
             return GSON.toJson(outputArray);
@@ -114,7 +120,13 @@ public class GetFeedController {
                 } else {
                     throw new JSONException("Media is not of type text, image or video");
                 }
-                outputArray[i] = new FeedItem(i+1, mediaPost, item.getString("FirstName") + " " + item.getString("LastName"), userVote, item.getInt("Votes") - userVote, item.getInt("PostID"));
+                outputArray[i] = new FeedItem(i+1,
+                        mediaPost,
+                        item.getString("FirstName") + " " + item.getString("LastName"),
+                        item.getString("ProfilePicture"),
+                        userVote,
+                        item.getInt("Votes") - userVote,
+                        item.getInt("PostID"));
             }
             sqlClient.terminate();
             return GSON.toJson(outputArray);

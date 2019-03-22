@@ -65,7 +65,7 @@ public class SQLClient {
                 List<DBInstance> list = result.getDBInstances();
                 conn = getDBConnectionUsingIam(list.get(0).getEndpoint().getAddress(),
                         list.get(0).getEndpoint().getPort(),
-                        "backend");
+                        "admin");
             }
 
         } catch(Exception e) {

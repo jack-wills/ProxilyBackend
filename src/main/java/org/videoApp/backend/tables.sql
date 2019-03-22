@@ -9,6 +9,7 @@ CREATE TABLE users (
     Email varchar(255) NOT NULL,
     FirstName varchar(255) NOT NULL,
     LastName varchar(255) NOT NULL,
+    ProfilePicture varchar(255) NOT NULL,
     HashedPassword varchar(255),
     Salt varchar(255),
     PRIMARY KEY (UserID)

@@ -24,6 +24,7 @@ import java.util.Date;
 public class AuthController {
 
     Gson GSON = new Gson();
+    private String DEFAULT_PROFILE_PICTURE = "";
 
     @RequestMapping("/signin")
     public String signin(@RequestBody SignInRequest request) {
@@ -42,6 +43,7 @@ public class AuthController {
                         .setSubject(itemReturn.getString("UserID"))
                         .claim("firstName", itemReturn.getString("FirstName"))
                         .claim("lastName", itemReturn.getString("LastName"))
+                        .claim("profilePicture", itemReturn.getString("ProfilePicture"))
                         .claim("email", request.getEmail())
                         .setIssuedAt(new Date())
                         .signWith(
@@ -51,6 +53,7 @@ public class AuthController {
                         .compact();
                 response.put("name", itemReturn.getString("FirstName") + " " + itemReturn.getString("LastName"));
                 response.put("email", request.getEmail());
+                response.put("profilePicture", itemReturn.getString("ProfilePicture"));
                 response.put("jwt", jws);
             } else {
                 response.put("jwt", "");
@@ -77,6 +80,7 @@ public class AuthController {
             JSONObject response = new JSONObject();
             response.put("name", String.class.cast(claims.getBody().get("firstName")) + " " + String.class.cast(claims.getBody().get("lastName")));
             response.put("email", claims.getBody().get("email"));
+            response.put("profilePicture", claims.getBody().get("profilePicture"));
             return response.toString();
         } catch (JSONException e) {
             return "{\"error\": \"internal server error\"}";
@@ -104,6 +108,7 @@ public class AuthController {
                 String firstName = profile.getName().replace(" " + lastName, "");
                 sqlPutJson.put("FirstName", firstName);
                 sqlPutJson.put("LastName", lastName);
+                sqlPutJson.put("ProfilePicture", profile.getPicture());
                 sqlClient.setRow(sqlPutJson, "users", false);
             }
             sqlClient.terminate();
@@ -128,6 +133,7 @@ public class AuthController {
             sqlPutJson.put("Email", request.getEmail());
             sqlPutJson.put("FirstName", request.getFirstName());
             sqlPutJson.put("LastName", request.getLastName());
+            sqlPutJson.put("ProfilePicture", DEFAULT_PROFILE_PICTURE);
             sqlPutJson.put("HashedPassword", hashedPass);
             sqlPutJson.put("Salt", salt);
             sqlClient.setRow(sqlPutJson, "users", false);
@@ -147,6 +153,7 @@ public class AuthController {
                     .claim("firstName",request.getFirstName().substring(0, 1).toUpperCase() + request.getFirstName().substring(1))
                     .claim("lastName", request.getLastName().substring(0, 1).toUpperCase() + request.getLastName().substring(1))
                     .claim("email", request.getEmail())
+                    .claim("profilePicture", DEFAULT_PROFILE_PICTURE)
                     .setIssuedAt(new Date())
                     .setExpiration(new Date(System.currentTimeMillis()+86400000L))
                     .signWith(
@@ -165,5 +172,11 @@ public class AuthController {
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
+    }
+
+    @RequestMapping("/setProfilePicture")
+    public String setProfilePicture(@RequestBody ChangeProfilePictureRequest requestString) {
+        //TODO
+        return "{\"success\": true}";
     }
 }
