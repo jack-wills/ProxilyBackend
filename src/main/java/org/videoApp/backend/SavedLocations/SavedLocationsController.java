@@ -6,6 +6,8 @@ import io.jsonwebtoken.Jws;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +19,8 @@ import java.io.UnsupportedEncodingException;
 
 @RestController
 public class SavedLocationsController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SavedLocationsController.class);
 
     Gson GSON = new Gson();
     @RequestMapping("/getSavedLocations")
@@ -46,14 +50,16 @@ public class SavedLocationsController {
                     .replace("\"Longitude\"", "\"longitude\"")
                     .replace("\"Name\"", "\"name\"");
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
-            System.out.println("JSONException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
-            System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -77,12 +83,16 @@ public class SavedLocationsController {
             response.put("id", savedLocationID);
             return response.toString();
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -100,12 +110,16 @@ public class SavedLocationsController {
             sqlClient.terminate();
             return "{\"success\": true}";
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

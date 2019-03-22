@@ -1,13 +1,13 @@
 package org.videoApp.backend.Comments;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +23,8 @@ import java.util.Locale;
 
 @RestController
 public class CommentsController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CommentsController.class);
 
     Gson GSON = new Gson();
     @RequestMapping("/getComments")
@@ -72,13 +74,16 @@ public class CommentsController {
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
             sqlClient.terminate();
-            System.out.println("JSONException: " + e.getMessage());
+            LOG.error("JSONException: {}", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
             System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -100,12 +105,16 @@ public class CommentsController {
             sqlClient.terminate();
             return "{\"success\": true}";
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -152,14 +161,16 @@ public class CommentsController {
             sqlClient.terminate();
             return "{\"success\": \"true\"}";
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
-            System.out.println("JSONException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
-            System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

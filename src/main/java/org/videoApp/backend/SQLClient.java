@@ -13,6 +13,8 @@ import com.amazonaws.services.rds.model.DescribeDBInstancesResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -33,6 +35,8 @@ import java.util.List;
 import java.util.Properties;
 
 public class SQLClient {
+    private static final Logger LOG = LoggerFactory.getLogger(SQLClient.class);
+
     private Connection conn;
     private Region region = Regions.getCurrentRegion();
 
@@ -69,7 +73,7 @@ public class SQLClient {
             }
 
         } catch(Exception e) {
-            System.out.println(e.getMessage());
+            LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
         }
     }
@@ -79,6 +83,7 @@ public class SQLClient {
             Statement stmt = conn.createStatement();
             return stmt.execute(command);
         } catch (SQLException e) {
+            LOG.error("SQLException: {}", e);
             throw new IllegalStateException(e.getMessage());
         }
     }
@@ -101,6 +106,7 @@ public class SQLClient {
             JSONObject json = getEntityFromResultSet(rset);
             return json;
         } catch (Exception e) {
+            LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
         }
     }
@@ -116,6 +122,7 @@ public class SQLClient {
             }
             return stmt.executeUpdate();
         } catch (Exception e) {
+            LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
         }
     }
@@ -133,6 +140,7 @@ public class SQLClient {
             JSONObject json = getEntitiesFromResultSet(rset);
             return json;
         } catch (Exception e) {
+            LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
         }
     }
@@ -177,6 +185,7 @@ public class SQLClient {
             rset.next();
             return rset.getInt(1);
         } catch (Exception e) {
+            LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
         }
     }
@@ -216,7 +225,7 @@ public class SQLClient {
             }
             clearSslProperties();
         } catch(SQLException ex) {
-            System.out.println(ex.getMessage());
+            LOG.error("SQLException: {}", ex);
         }
     }
 

@@ -1,3 +1,5 @@
 #!/bin/bash
 cd /var/server/
-kill $(cat ./pid.file)
+if [ -f ./pid.file ]; then
+    kill $(cat ./pid.file)
+fi

@@ -16,8 +16,7 @@ CREATE TABLE users (
 );
 
 INSERT INTO `users` VALUES
-(1, 'jack280697@hotmail.co.uk','Jack','Williams',NULL,NULL),
-(2, 'jackw53519@gmail.co.uk','Jack','Williams','E970B2F9D4D2DC420F39E5B230B5494965DBE44F','E5D6981A2D54F19E');
+(1, 'jackw53519@gmail.co.uk','Jack','Williams', 'https://jackwill.me/images/mountains.jpg', 'E970B2F9D4D2DC420F39E5B230B5494965DBE44F','E5D6981A2D54F19E');
 
 CREATE TABLE posts (
     PostID int NOT NULL AUTO_INCREMENT,

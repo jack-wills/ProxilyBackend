@@ -7,6 +7,8 @@ import io.jsonwebtoken.SignatureAlgorithm;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +27,7 @@ public class AuthController {
 
     Gson GSON = new Gson();
     private String DEFAULT_PROFILE_PICTURE = "";
+    private static final Logger LOG = LoggerFactory.getLogger(AuthController.class);
 
     @RequestMapping("/signin")
     public String signin(@RequestBody SignInRequest request) {
@@ -61,12 +64,15 @@ public class AuthController {
             sqlClient.terminate();
             return response.toString();
         } catch (JSONException e) {
+            LOG.error("JSONException when signing in: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            LOG.error("Exception when signing in: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException when signing in: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
@@ -83,10 +89,13 @@ public class AuthController {
             response.put("profilePicture", claims.getBody().get("profilePicture"));
             return response.toString();
         } catch (JSONException e) {
+            LOG.error("JSONException when checking token: {}", e);
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException when checking token: {}", e);
             return "{\"error\": \"internal server error\"}";
         } catch (IOException e) {
+            LOG.error("IOException when checking token: {}", e);
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -114,9 +123,11 @@ public class AuthController {
             sqlClient.terminate();
             return "{\"success\": true}";
         } catch (JSONException e) {
+            LOG.error("JSONException when registering facebook account: {}", e);
             sqlClient.terminate();
             return "{error: \"internal server error\"}";
         } catch (IOException e) {
+            LOG.error("IOException when registering facebook account: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
@@ -138,9 +149,11 @@ public class AuthController {
             sqlPutJson.put("Salt", salt);
             sqlClient.setRow(sqlPutJson, "users", false);
         } catch (JSONException e) {
+            LOG.error("JSONException when registering account: {}", e);
             sqlClient.terminate();
             return "{error: \"internal server error\"}";
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            LOG.error("Exception when registering account: {}", e);
             sqlClient.terminate();
             return "{error: \"internal server error\"}";
         }
@@ -166,9 +179,11 @@ public class AuthController {
             sqlClient.terminate();
             return response.toString();
         } catch (JSONException e) {
+            LOG.error("JSONException when registering account: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException when registering account: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }

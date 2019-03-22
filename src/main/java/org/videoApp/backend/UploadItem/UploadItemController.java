@@ -1,10 +1,6 @@
 package org.videoApp.backend.UploadItem;
 import com.amazonaws.HttpMethod;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
@@ -12,9 +8,10 @@ import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import com.google.gson.Gson;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,7 +20,6 @@ import org.videoApp.backend.TokenClient;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URL;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -33,6 +29,8 @@ import java.util.Locale;
 
 @RestController
 public class UploadItemController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(UploadItemController.class);
 
     Gson GSON = new Gson();
 
@@ -106,12 +104,16 @@ public class UploadItemController {
             }
             return "{\"success\": true}";
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

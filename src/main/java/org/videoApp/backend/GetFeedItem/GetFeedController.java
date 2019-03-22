@@ -2,10 +2,11 @@ package org.videoApp.backend.GetFeedItem;
 import com.google.gson.Gson;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,6 +18,8 @@ import java.io.UnsupportedEncodingException;
 
 @RestController
 public class GetFeedController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(GetFeedController.class);
 
     Gson GSON = new Gson();
     @RequestMapping("/getPopularFeedItems")
@@ -69,14 +72,16 @@ public class GetFeedController {
             sqlClient.terminate();
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
-            System.out.println("JSONException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
-            System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -131,14 +136,16 @@ public class GetFeedController {
             sqlClient.terminate();
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
-            System.out.println("JSONException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
-            System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

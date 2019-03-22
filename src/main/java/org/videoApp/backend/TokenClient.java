@@ -8,6 +8,8 @@ import io.jsonwebtoken.impl.DefaultClaims;
 import io.jsonwebtoken.impl.DefaultJws;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -19,6 +21,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class TokenClient {
+    private static final Logger LOG = LoggerFactory.getLogger(TokenClient.class);
+
     public static Profile getFacebookUserInfo(String accessToken) throws IOException, JSONException {
         String url = "https://graph.facebook.com/v2.12/me?fields=id,name,picture,email&access_token=" + accessToken;
         URL obj = new URL(url);

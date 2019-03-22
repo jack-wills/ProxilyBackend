@@ -3,18 +3,14 @@ package org.videoApp.backend.Voting;
 import com.google.gson.Gson;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.videoApp.backend.GetFeedItem.FeedItem;
-import org.videoApp.backend.GetFeedItem.ImagePost;
-import org.videoApp.backend.GetFeedItem.MediaPost;
-import org.videoApp.backend.GetFeedItem.TextPost;
-import org.videoApp.backend.GetFeedItem.VideoPost;
 import org.videoApp.backend.SQLClient;
 import org.videoApp.backend.TokenClient;
 
@@ -23,6 +19,8 @@ import java.io.UnsupportedEncodingException;
 
 @RestController
 public class VotingController {
+
+    private static final Logger LOG = LoggerFactory.getLogger(VotingController.class);
 
     Gson GSON = new Gson();
     @RequestMapping("/registerVote")
@@ -66,14 +64,16 @@ public class VotingController {
             sqlClient.terminate();
             return "{\"success\": \"true\"}";
         } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             sqlClient.terminate();
-            System.out.println("JSONException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
-            System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }
