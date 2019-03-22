@@ -38,8 +38,7 @@ public class UploadItemController {
     public String uploadItem(@RequestBody UploadItemRequest request) {
         SQLClient sqlClient = new SQLClient();
         LocalDateTime ldt = LocalDateTime.now(Clock.systemUTC());
-        DateTimeFormatter sqlFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
-        DateTimeFormatter s3Format = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm'Z'", Locale.ENGLISH);
+        DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         try {
             String responseUrl = "";
             JSONObject media = new JSONObject();
@@ -52,16 +51,16 @@ public class UploadItemController {
                 AmazonS3 client = getS3Client();
                 GeneratePresignedUrlRequest s3RequestUpload =
                         new GeneratePresignedUrlRequest(
-                                "proxily-post-images-us-east-1",
-                                claims.getBody().getSubject() + "_" + s3Format.format(ldt) + ".jpeg")
+                                "proxily-post-image-us-east-1",
+                                claims.getBody().getSubject() + "_" + format.format(ldt) + ".jpeg")
                                 .withExpiration(Date.from(Instant.now().plusSeconds(3600)))
                                 .withMethod(HttpMethod.PUT);
                 responseUrl = client.generatePresignedUrl(s3RequestUpload).toString();
 
                 GeneratePresignedUrlRequest s3RequestDownload =
                         new GeneratePresignedUrlRequest(
-                                "proxily-post-images-us-east-1",
-                                claims.getBody().getSubject() + "_" + s3Format.format(ldt) + ".jpeg")
+                                "proxily-post-image-us-east-1",
+                                claims.getBody().getSubject() + "_" + format.format(ldt) + ".jpeg")
                                 .withExpiration(Date.from(Instant.now().plusSeconds(604800))) //7 days
                                 .withMethod(HttpMethod.GET);
                 mediaContent.put("url", client.generatePresignedUrl(s3RequestDownload).toString());
@@ -70,16 +69,16 @@ public class UploadItemController {
                 AmazonS3 client = getS3Client();
                 GeneratePresignedUrlRequest s3RequestUpload =
                         new GeneratePresignedUrlRequest(
-                                "proxily-post-videos-us-east-1",
-                                claims.getBody().getSubject() + "_" + s3Format.format(ldt) + ".mp4")
+                                "proxily-post-video-us-east-1",
+                                claims.getBody().getSubject() + "_" + format.format(ldt) + ".mp4")
                                 .withExpiration(Date.from(Instant.now().plusSeconds(3600)))
                                 .withMethod(HttpMethod.PUT);
                 responseUrl = client.generatePresignedUrl(s3RequestUpload).toString();
 
                 GeneratePresignedUrlRequest s3RequestDownload =
                         new GeneratePresignedUrlRequest(
-                                "proxily-post-videos-us-east-1",
-                                claims.getBody().getSubject() + "_" + s3Format.format(ldt) + ".mp4")
+                                "proxily-post-video-us-east-1",
+                                claims.getBody().getSubject() + "_" + format.format(ldt) + ".mp4")
                                 .withExpiration(Date.from(Instant.now().plusSeconds(604800))) //7 days
                                 .withMethod(HttpMethod.GET);
                 mediaContent.put("url", client.generatePresignedUrl(s3RequestDownload).toString());
@@ -93,7 +92,7 @@ public class UploadItemController {
             sqlPutJson.put("Votes", 0);
             sqlPutJson.put("Latitude", Float.valueOf(request.getLatitude()));
             sqlPutJson.put("Longitude", Float.valueOf(request.getLongitude()));
-            sqlPutJson.put("Timestamp", sqlFormat.format(ldt));
+            sqlPutJson.put("Timestamp", format.format(ldt));
             sqlPutJson.put("FileUploaded", request.getMediaType().equals("text") ? 1 : 0);
             sqlClient.setRow(sqlPutJson, "posts", false);
             sqlClient.terminate();
