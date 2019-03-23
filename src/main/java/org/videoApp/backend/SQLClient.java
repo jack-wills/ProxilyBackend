@@ -73,7 +73,7 @@ public class SQLClient {
                 DescribeDBInstancesResult result = rdsClient.describeDBInstances(request);
                 List<DBInstance> list = result.getDBInstances();
                 setSslProperties();
-                connectionPool.setUsername("root");
+                connectionPool.setUsername("admin");
                 connectionPool.setPassword("password");
                 //connectionPool.setPassword(generateAuthToken(hostname, port, user));
                 connectionPool.setUrl("jdbc:mysql://" + list.get(0).getEndpoint().getAddress() + ":" + list.get(0).getEndpoint().getPort() + "/Proxily?autoReconnect=true&useSSL=false");
