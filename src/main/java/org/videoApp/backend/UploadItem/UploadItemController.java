@@ -12,6 +12,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,11 +33,11 @@ public class UploadItemController {
 
     private static final Logger LOG = LoggerFactory.getLogger(UploadItemController.class);
 
-    Gson GSON = new Gson();
+    @Autowired
+    private SQLClient sqlClient;
 
     @RequestMapping("/uploadItem")
     public String uploadItem(@RequestBody UploadItemRequest request) {
-        SQLClient sqlClient = new SQLClient();
         LocalDateTime ldt = LocalDateTime.now(Clock.systemUTC());
         DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         try {
@@ -95,7 +96,6 @@ public class UploadItemController {
             sqlPutJson.put("Timestamp", format.format(ldt));
             sqlPutJson.put("FileUploaded", request.getMediaType().equals("text") ? 1 : 0);
             sqlClient.setRow(sqlPutJson, "posts", false);
-            sqlClient.terminate();
             if (responseUrl != "") {
                 JSONObject response = new JSONObject();
                 response.put("uploadUrl", responseUrl);
@@ -104,15 +104,12 @@ public class UploadItemController {
             return "{\"success\": true}";
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

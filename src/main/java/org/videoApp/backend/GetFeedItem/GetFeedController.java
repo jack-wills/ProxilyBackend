@@ -7,6 +7,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -21,14 +22,16 @@ public class GetFeedController {
 
     private static final Logger LOG = LoggerFactory.getLogger(GetFeedController.class);
 
+    @Autowired
+    private SQLClient sqlClient;
+
     Gson GSON = new Gson();
+
     @RequestMapping("/getPopularFeedItems")
     public String getPopularFeedItems(@RequestBody GetFeedItemRequest request) {
-        SQLClient sqlClient = new SQLClient();
         try {
             JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Votes*0.7 + (1/(NOW() - Timestamp))*0.3 DESC", request.getGetPostsFrom(), request.getGetPostsTo());
             if (sqlOutput.has("error")) {
-                sqlClient.terminate();
                 return sqlOutput.toString();
             }
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
@@ -69,30 +72,24 @@ public class GetFeedController {
                         item.getInt("Votes") - userVote,
                         item.getInt("PostID"));
             }
-            sqlClient.terminate();
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }
 
     @RequestMapping("/getLatestFeedItems")
     public String getLatestFeedItems(@RequestBody GetFeedItemRequest request) {
-        SQLClient sqlClient = new SQLClient();
         try {
             JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
             if (sqlOutput.has("error")) {
-                sqlClient.terminate();
                 return sqlOutput.toString();
             }
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
@@ -133,19 +130,15 @@ public class GetFeedController {
                         item.getInt("Votes") - userVote,
                         item.getInt("PostID"));
             }
-            sqlClient.terminate();
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

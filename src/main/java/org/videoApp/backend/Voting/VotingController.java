@@ -8,6 +8,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,10 +23,11 @@ public class VotingController {
 
     private static final Logger LOG = LoggerFactory.getLogger(VotingController.class);
 
-    Gson GSON = new Gson();
+    @Autowired
+    private SQLClient sqlClient;
+
     @RequestMapping("/registerVote")
     public String registerVote(@RequestBody VotingRequest request) {
-        SQLClient sqlClient = new SQLClient();
         try {
             Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             int previousVote;
@@ -61,19 +63,15 @@ public class VotingController {
                 }
                 sqlClient.setRow(json, "users_votes", true);
             }
-            sqlClient.terminate();
             return "{\"success\": \"true\"}";
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
-            sqlClient.terminate();
             return "{\"error\": \"internal server error\"}";
         }
     }

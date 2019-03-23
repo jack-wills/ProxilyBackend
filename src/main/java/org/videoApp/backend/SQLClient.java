@@ -10,11 +10,13 @@ import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
 import com.amazonaws.services.rds.model.DBInstance;
 import com.amazonaws.services.rds.model.DescribeDBInstancesRequest;
 import com.amazonaws.services.rds.model.DescribeDBInstancesResult;
+import org.apache.commons.dbcp.BasicDataSource;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -34,11 +36,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
+@Service
 public class SQLClient {
     private static final Logger LOG = LoggerFactory.getLogger(SQLClient.class);
 
-    private Connection conn;
     private Region region = Regions.getCurrentRegion();
+    private BasicDataSource connectionPool;
 
     private static String SSL_CERTIFICATE;
 
@@ -50,12 +53,14 @@ public class SQLClient {
 
     public SQLClient() {
         try {
+            connectionPool = new BasicDataSource();
+            connectionPool.setInitialSize(5);
+            connectionPool.setDriverClassName("com.mysql.jdbc.Driver");
             // create a connection to the database
             if (region == null) {
-                String url       = "jdbc:mysql://localhost:3306/Proxily?autoReconnect=true&useSSL=false";
-                String user      = "root";
-                String password  = "";
-                conn = DriverManager.getConnection(url, user, password);
+                connectionPool.setUsername("root");
+                connectionPool.setPassword("");
+                connectionPool.setUrl("jdbc:mysql://localhost:3306/Proxily?autoReconnect=true&useSSL=false");
             } else {
                 SSL_CERTIFICATE = "rds-ca-2015-" +  Regions.getCurrentRegion().toString() + ".pem";
                 AmazonRDS rdsClient = AmazonRDSClientBuilder
@@ -67,11 +72,12 @@ public class SQLClient {
                 DescribeDBInstancesRequest request = new DescribeDBInstancesRequest();
                 DescribeDBInstancesResult result = rdsClient.describeDBInstances(request);
                 List<DBInstance> list = result.getDBInstances();
-                conn = getDBConnectionUsingIam(list.get(0).getEndpoint().getAddress(),
-                        list.get(0).getEndpoint().getPort(),
-                        "admin");
+                setSslProperties();
+                connectionPool.setUsername("root");
+                connectionPool.setPassword("password");
+                //connectionPool.setPassword(generateAuthToken(hostname, port, user));
+                connectionPool.setUrl("jdbc:mysql://" + list.get(0).getEndpoint().getAddress() + ":" + list.get(0).getEndpoint().getPort() + "/Proxily?autoReconnect=true&useSSL=false");
             }
-
         } catch(Exception e) {
             LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
@@ -80,8 +86,11 @@ public class SQLClient {
 
     public boolean executeCommand(String command) {
         try {
+            Connection conn = connectionPool.getConnection();
             Statement stmt = conn.createStatement();
-            return stmt.execute(command);
+            boolean success = stmt.execute(command);
+            terminate(conn);
+            return success;
         } catch (SQLException e) {
             LOG.error("SQLException: {}", e);
             throw new IllegalStateException(e.getMessage());
@@ -90,6 +99,7 @@ public class SQLClient {
 
     public JSONObject getRow(String command, JSONArray values) {
         try {
+            Connection conn = connectionPool.getConnection();
             LOG.info("Getting row with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
@@ -105,6 +115,7 @@ public class SQLClient {
                 return json;
             }
             JSONObject json = getEntityFromResultSet(rset);
+            terminate(conn);
             return json;
         } catch (Exception e) {
             LOG.error("Exception: {}", e);
@@ -114,6 +125,7 @@ public class SQLClient {
 
     public int deleteRows(String command, JSONArray values) {
         try {
+            Connection conn = connectionPool.getConnection();
             LOG.info("Deleting row with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
@@ -122,7 +134,9 @@ public class SQLClient {
             for (int i = 0; i < values.length(); i++) {
                 stmt.setObject(i+1, values.get(i));
             }
-            return stmt.executeUpdate();
+            int rows = stmt.executeUpdate();
+            terminate(conn);
+            return rows;
         } catch (Exception e) {
             LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
@@ -131,6 +145,7 @@ public class SQLClient {
 
     public JSONObject getRows(String command, JSONArray values) {
         try {
+            Connection conn = connectionPool.getConnection();
             LOG.info("Getting rows with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
@@ -141,6 +156,7 @@ public class SQLClient {
             }
             ResultSet rset = stmt.executeQuery();
             JSONObject json = getEntitiesFromResultSet(rset);
+            terminate(conn);
             return json;
         } catch (Exception e) {
             LOG.error("Exception: {}", e);
@@ -153,6 +169,7 @@ public class SQLClient {
 
     public int setRow(JSONObject command, String tableName, boolean override, boolean returnID) {
         try {
+            Connection conn = connectionPool.getConnection();
             StringBuilder cmdBuilder = new StringBuilder();
             if (override) {
                 cmdBuilder.append("replace into " + tableName + " (");
@@ -188,6 +205,7 @@ public class SQLClient {
             }
             ResultSet rset = stmt.getGeneratedKeys();
             rset.next();
+            terminate(conn);
             return rset.getInt(1);
         } catch (Exception e) {
             LOG.error("Exception: {}", e);
@@ -223,28 +241,14 @@ public class SQLClient {
 
 
 
-    public void terminate() {
+    public void terminate(Connection conn) {
         try {
             if (conn != null) {
                 conn.close();
             }
-            clearSslProperties();
         } catch(SQLException ex) {
             LOG.error("SQLException: {}", ex);
         }
-    }
-
-    /**
-     * This method returns a connection to the db instance authenticated using IAM Database Authentication
-     * @return
-     * @throws Exception
-     */
-    private static Connection getDBConnectionUsingIam(String hostname, int port, String user) throws Exception {
-        setSslProperties();
-        String url = "jdbc:mysql://" + hostname + ":" + port + "/Proxily?autoReconnect=true&useSSL=false";
-        LOG.info("jdbc url = " + url);
-        //String pass = generateAuthToken(hostname, port, user);
-        return DriverManager.getConnection(url, user, "password");
     }
 
     /**
