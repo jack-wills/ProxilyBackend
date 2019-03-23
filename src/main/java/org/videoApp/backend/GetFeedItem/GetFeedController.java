@@ -152,7 +152,7 @@ public class GetFeedController {
 
     public JSONObject getSQLQuery(final SQLClient sqlClient, final float latitude, final float longitude, final String orderBy, final int searchStart, final int searchEnd) throws JSONException {
         String sqlCommand =  "SELECT\n" +
-                "    posts.*, users.FirstName, users.LastName, (\n" +
+                "    posts.*, users.FirstName, users.LastName, users.ProfilePicture, (\n" +
                 "      3959 * acos (\n" +
                 "      cos ( radians(?) )\n" +
                 "      * cos( radians( Latitude ) )\n" +

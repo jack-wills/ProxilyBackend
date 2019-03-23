@@ -28,7 +28,7 @@ public class Application {
                 FileOutputStream fos = new FileOutputStream("rds-ca-2015-" + region.toString() + ".pem");
                 fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
             } catch (IOException e) {
-                System.out.println(e.getMessage());
+                LOG.error("Could not retrieve pem file for DB SSL: ", e);
                 throw new IllegalStateException(e.getMessage());
             }
         }

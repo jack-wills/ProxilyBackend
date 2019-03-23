@@ -90,6 +90,7 @@ public class SQLClient {
 
     public JSONObject getRow(String command, JSONArray values) {
         try {
+            LOG.info("Getting row with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
             }
@@ -113,6 +114,7 @@ public class SQLClient {
 
     public int deleteRows(String command, JSONArray values) {
         try {
+            LOG.info("Deleting row with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
             }
@@ -129,6 +131,7 @@ public class SQLClient {
 
     public JSONObject getRows(String command, JSONArray values) {
         try {
+            LOG.info("Getting rows with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
             }
@@ -166,10 +169,12 @@ public class SQLClient {
             }
             PreparedStatement stmt;
             cmdBuilder.append("?);");
+            String cmd = cmdBuilder.toString();
+            LOG.info("Setting row with command: " + cmd + "and values: " + command.toString());
             if (returnID) {
-                stmt = conn.prepareStatement(cmdBuilder.toString(), Statement.RETURN_GENERATED_KEYS);
+                stmt = conn.prepareStatement(cmd, Statement.RETURN_GENERATED_KEYS);
             } else {
-                stmt = conn.prepareStatement(cmdBuilder.toString());
+                stmt = conn.prepareStatement(cmd);
             }
 
             Iterator<String> itr1 = command.keys();
@@ -237,7 +242,7 @@ public class SQLClient {
     private static Connection getDBConnectionUsingIam(String hostname, int port, String user) throws Exception {
         setSslProperties();
         String url = "jdbc:mysql://" + hostname + ":" + port + "/Proxily?autoReconnect=true&useSSL=false";
-        System.out.println("jdbc url = " + url);
+        LOG.info("jdbc url = " + url);
         //String pass = generateAuthToken(hostname, port, user);
         return DriverManager.getConnection(url, user, "password");
     }

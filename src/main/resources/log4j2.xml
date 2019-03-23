@@ -15,11 +15,10 @@
         </RollingFile>
     </Appenders>
     <Loggers>
-        <Root level="debug">
+        <Root level="WARN">
             <AppenderRef ref="Console" />
             <AppenderRef ref="rollingFile"/>
         </Root>
-        <Logger name="org.springframework" level="WARN" />
-        <Logger name="org.hibernate" level="WARN" />
+        <Logger name="org.videoApp.backend" level="INFO" />
     </Loggers>
 </Configuration>

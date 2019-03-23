@@ -79,7 +79,6 @@ public class CommentsController {
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException: {}", e);
             sqlClient.terminate();
-            System.out.println("UnsupportedEncodingException: " + e.getMessage());
             return "{\"error\": \"" + e.getMessage() + "\"}";
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
