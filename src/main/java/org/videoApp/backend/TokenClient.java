@@ -42,10 +42,10 @@ public class TokenClient {
         JSONObject myResponse = new JSONObject(response.toString());
         JSONObject picture_reponse = myResponse.getJSONObject("picture");
         JSONObject data_response = picture_reponse.getJSONObject("data");
-        return new Profile(myResponse.getString("email"), myResponse.getString("name"), data_response.getString("url"));
+        return new Profile(myResponse.getString("id"), myResponse.getString("email"), myResponse.getString("name"), data_response.getString("url"));
     }
 
-    public static Jws<Claims> decodeToken(String accessToken) throws UnsupportedEncodingException, IOException, JSONException {
+    public static Jws<Claims> decodeToken(String accessToken) throws IOException, JSONException {
         try {
             return Jwts.parser()
                     .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
@@ -54,7 +54,8 @@ public class TokenClient {
             Profile profile = getFacebookUserInfo(accessToken);
 
             Map<String, Object> map = new HashMap<>();
-            map.put("sub", profile.getEmail());
+            map.put("sub", profile.getId());
+            map.put("email", profile.getEmail());
             String lastName = profile.getName().substring(profile.getName().lastIndexOf(' ') + 1).trim();
             String firstName = profile.getName().replace(" " + lastName, "");
             map.put("firstName", firstName);

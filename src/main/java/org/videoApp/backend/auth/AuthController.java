@@ -107,11 +107,12 @@ public class AuthController {
             JSONObject request = new JSONObject(requestString);
             JSONObject sqlPutJson = new JSONObject();
             Profile profile = TokenClient.getFacebookUserInfo(request.getString("token"));
-            String sqlCommand = "SELECT * FROM users WHERE email=?";
+            String sqlCommand = "SELECT * FROM users WHERE UserID=?";
             JSONArray values = new JSONArray();
-            values.put(profile.getEmail());
+            values.put(profile.getId());
             JSONObject itemReturn = sqlClient.getRow(sqlCommand, values);
             if (itemReturn.has("error") && itemReturn.get("error").equals("OBJECT_NOT_FOUND")) {
+                sqlPutJson.put("UserID", profile.getId());
                 sqlPutJson.put("Email", profile.getEmail());
                 String lastName = profile.getName().substring(profile.getName().lastIndexOf(' ') + 1).trim();
                 String firstName = profile.getName().replace(" " + lastName, "");
