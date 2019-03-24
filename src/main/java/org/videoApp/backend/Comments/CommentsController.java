@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.videoApp.backend.SQLClient;
 import org.videoApp.backend.TokenClient;
+import org.videoApp.backend.UnauthorisedException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -84,6 +85,8 @@ public class CommentsController {
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
             return "{\"error\": \"internal server error\"}";
+        } catch (UnauthorisedException e) {
+            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
@@ -110,6 +113,8 @@ public class CommentsController {
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
             return "{\"error\": \"internal server error\"}";
+        } catch (UnauthorisedException e) {
+            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
@@ -161,6 +166,8 @@ public class CommentsController {
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
             return "{\"error\": \"internal server error\"}";
+        } catch (UnauthorisedException e) {
+            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 }

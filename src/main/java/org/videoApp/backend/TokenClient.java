@@ -45,13 +45,19 @@ public class TokenClient {
         return new Profile(myResponse.getString("id"), myResponse.getString("email"), myResponse.getString("name"), data_response.getString("url"));
     }
 
-    public static Jws<Claims> decodeToken(String accessToken) throws IOException, JSONException {
+    public static Jws<Claims> decodeToken(String accessToken) throws IOException, UnauthorisedException {
         try {
             return Jwts.parser()
                     .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
                     .parseClaimsJws(accessToken);
         } catch (MalformedJwtException e) {
-            Profile profile = getFacebookUserInfo(accessToken);
+            Profile profile;
+            try {
+                profile = getFacebookUserInfo(accessToken);
+            } catch (JSONException f) {
+                LOG.info("User not authenicated! Token = " + accessToken);
+                throw new UnauthorisedException();
+            }
 
             Map<String, Object> map = new HashMap<>();
             map.put("sub", profile.getId());

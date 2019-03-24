@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.videoApp.backend.Profile;
 import org.videoApp.backend.SQLClient;
 import org.videoApp.backend.TokenClient;
+import org.videoApp.backend.UnauthorisedException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -64,19 +65,15 @@ public class AuthController {
             } else {
                 response.put("jwt", "");
             }
-
             return response.toString();
         } catch (JSONException e) {
             LOG.error("JSONException when signing in: {}", e);
-
             return "{\"error\": \"internal server error\"}";
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             LOG.error("Exception when signing in: {}", e);
-
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException when signing in: {}", e);
-
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -100,6 +97,8 @@ public class AuthController {
         } catch (IOException e) {
             LOG.error("IOException when checking token: {}", e);
             return "{\"error\": \"internal server error\"}";
+        } catch (UnauthorisedException e) {
+            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
@@ -123,15 +122,12 @@ public class AuthController {
                 sqlPutJson.put("ProfilePicture", profile.getPicture());
                 sqlClient.setRow(sqlPutJson, "users", false);
             }
-
             return "{\"success\": true}";
         } catch (JSONException e) {
             LOG.error("JSONException when registering facebook account: {}", e);
-
-            return "{error: \"internal server error\"}";
+            return "{error: \"Not a valid token.\"}";
         } catch (IOException e) {
             LOG.error("IOException when registering facebook account: {}", e);
-
             return "{\"error\": \"internal server error\"}";
         }
     }
@@ -152,11 +148,9 @@ public class AuthController {
             sqlClient.setRow(sqlPutJson, "users", false);
         } catch (JSONException e) {
             LOG.error("JSONException when registering account: {}", e);
-
             return "{error: \"internal server error\"}";
         } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
             LOG.error("Exception when registering account: {}", e);
-
             return "{error: \"internal server error\"}";
         }
         JSONArray values = new JSONArray();
@@ -178,15 +172,12 @@ public class AuthController {
                     .compact();
             JSONObject response = new JSONObject();
             response.put("token", jws);
-
             return response.toString();
         } catch (JSONException e) {
             LOG.error("JSONException when registering account: {}", e);
-
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException when registering account: {}", e);
-
             return "{\"error\": \"internal server error\"}";
         }
     }

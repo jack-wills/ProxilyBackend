@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.videoApp.backend.SQLClient;
 import org.videoApp.backend.TokenClient;
+import org.videoApp.backend.UnauthorisedException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -82,6 +83,8 @@ public class GetFeedController {
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
             return "{\"error\": \"internal server error\"}";
+        } catch (UnauthorisedException e) {
+            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
@@ -140,6 +143,8 @@ public class GetFeedController {
         } catch (IOException e) {
             LOG.error("IOException: {}", e);
             return "{\"error\": \"internal server error\"}";
+        } catch (UnauthorisedException e) {
+            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
