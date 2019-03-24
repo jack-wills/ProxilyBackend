@@ -1,5 +1,2 @@
 #!/bin/bash
-cd /var/server/
-if [ -f ./pid.file ]; then
-    kill $(cat ./pid.file) || true
-fi
+kill -9 $(lsof -t -i:8080)

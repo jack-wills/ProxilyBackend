@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
@@ -22,6 +21,7 @@ import java.util.Map;
 
 public class TokenClient {
     private static final Logger LOG = LoggerFactory.getLogger(TokenClient.class);
+    private static String DECRYPTION_KEY = System.getProperty("ProxilyEncryptionKey");
 
     public static Profile getFacebookUserInfo(String accessToken) throws IOException, JSONException {
         String url = "https://graph.facebook.com/v2.12/me?fields=id,name,picture,email&access_token=" + accessToken;
@@ -48,7 +48,7 @@ public class TokenClient {
     public static Jws<Claims> decodeToken(String accessToken) throws IOException, UnauthorisedException {
         try {
             return Jwts.parser()
-                    .setSigningKey("Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8"))
+                    .setSigningKey(DECRYPTION_KEY.getBytes("UTF-8"))
                     .parseClaimsJws(accessToken);
         } catch (MalformedJwtException e) {
             Profile profile;

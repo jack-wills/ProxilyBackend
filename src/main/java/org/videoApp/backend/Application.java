@@ -9,6 +9,10 @@ import java.nio.channels.ReadableByteChannel;
 
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -20,15 +24,21 @@ public class Application {
     private static final Logger LOG = LoggerFactory.getLogger(Application.class);
 
     public static void main(String[] args) {
-        if (region != null && !new File("rds-ca-2015-root.pem").exists()) {
-            try {
-                URL website = new URL("https://s3.amazonaws.com/rds-downloads/rds-ca-2015-root.pem");
-                ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-                FileOutputStream fos = new FileOutputStream("rds-ca-2015-root.pem");
-                fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
-            } catch (IOException e) {
-                LOG.error("Could not retrieve pem file for DB SSL: ", e);
-                throw new IllegalStateException(e.getMessage());
+        if (region != null) {
+            GetParameterRequest parameterRequest = new GetParameterRequest().withName("ProxilyEncryptionKey");
+            AWSSimpleSystemsManagement ssmclient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
+            GetParameterResult parameterResult = ssmclient.getParameter(parameterRequest);
+            System.setProperty("ProxilyEncryptionKey", parameterResult.getParameter().getValue());
+            if (!new File("rds-ca-2015-root.pem").exists()) {
+                try {
+                    URL website = new URL("https://s3.amazonaws.com/rds-downloads/rds-ca-2015-root.pem");
+                    ReadableByteChannel rbc = Channels.newChannel(website.openStream());
+                    FileOutputStream fos = new FileOutputStream("rds-ca-2015-root.pem");
+                    fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
+                } catch (IOException e) {
+                    LOG.error("Could not retrieve pem file for DB SSL: ", e);
+                    throw new IllegalStateException(e.getMessage());
+                }
             }
         }
         SpringApplication.run(Application.class, args);

@@ -29,6 +29,7 @@ public class AuthController {
 
     Gson GSON = new Gson();
     private String DEFAULT_PROFILE_PICTURE = "";
+    private String ENCRYPTION_KEY = System.getProperty("ProxilyEncryptionKey");
     private static final Logger LOG = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
@@ -55,7 +56,7 @@ public class AuthController {
                         .setIssuedAt(new Date())
                         .signWith(
                                 SignatureAlgorithm.HS256,
-                                "Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8")
+                                ENCRYPTION_KEY.getBytes("UTF-8")
                         )
                         .compact();
                 response.put("name", itemReturn.getString("FirstName") + " " + itemReturn.getString("LastName"));
@@ -167,7 +168,7 @@ public class AuthController {
                     .setExpiration(new Date(System.currentTimeMillis()+86400000L))
                     .signWith(
                             SignatureAlgorithm.HS256,
-                            "Yn2kjibddFAWtnPJ2AFlL8WXmohJMCvigQggaEypa5E=".getBytes("UTF-8")
+                            ENCRYPTION_KEY.getBytes("UTF-8")
                     )
                     .compact();
             JSONObject response = new JSONObject();
