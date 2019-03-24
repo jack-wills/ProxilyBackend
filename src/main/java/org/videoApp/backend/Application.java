@@ -20,12 +20,11 @@ public class Application {
     private static final Logger LOG = LoggerFactory.getLogger(Application.class);
 
     public static void main(String[] args) {
-        if (region != null && !new File("rds-ca-2015-" + region.toString() + ".pem").exists()) {
+        if (region != null && !new File("rds-ca-2015-root.pem").exists()) {
             try {
-                URL website = new URL("https://s3.amazonaws.com/rds-downloads/rds-ca-2015-" +
-                        region.toString() + ".pem");
+                URL website = new URL("https://s3.amazonaws.com/rds-downloads/rds-ca-2015-root.pem");
                 ReadableByteChannel rbc = Channels.newChannel(website.openStream());
-                FileOutputStream fos = new FileOutputStream("rds-ca-2015-" + region.toString() + ".pem");
+                FileOutputStream fos = new FileOutputStream("rds-ca-2015-root.pem");
                 fos.getChannel().transferFrom(rbc, 0, Long.MAX_VALUE);
             } catch (IOException e) {
                 LOG.error("Could not retrieve pem file for DB SSL: ", e);

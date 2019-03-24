@@ -26,7 +26,6 @@ import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -55,14 +54,13 @@ public class SQLClient {
         try {
             connectionPool = new BasicDataSource();
             connectionPool.setInitialSize(5);
-            connectionPool.setDriverClassName("com.mysql.jdbc.Driver");
             // create a connection to the database
             if (region == null) {
                 connectionPool.setUsername("root");
                 connectionPool.setPassword("");
                 connectionPool.setUrl("jdbc:mysql://localhost:3306/Proxily?autoReconnect=true&useSSL=false");
             } else {
-                SSL_CERTIFICATE = "rds-ca-2015-" +  Regions.getCurrentRegion().toString() + ".pem";
+                SSL_CERTIFICATE = "rds-ca-2015-root.pem";
                 AmazonRDS rdsClient = AmazonRDSClientBuilder
                         .standard()
                         .withCredentials(new DefaultAWSCredentialsProviderChain())
@@ -73,10 +71,10 @@ public class SQLClient {
                 DescribeDBInstancesResult result = rdsClient.describeDBInstances(request);
                 List<DBInstance> list = result.getDBInstances();
                 setSslProperties();
-                connectionPool.setUsername("admin");
-                connectionPool.setPassword("password");
-                //connectionPool.setPassword(generateAuthToken(hostname, port, user));
-                connectionPool.setUrl("jdbc:mysql://" + list.get(0).getEndpoint().getAddress() + ":" + list.get(0).getEndpoint().getPort() + "/Proxily?autoReconnect=true&useSSL=false");
+                connectionPool.setUsername("backend");
+                connectionPool.setPassword(generateAuthToken(list.get(0).getEndpoint().getAddress(), list.get(0).getEndpoint().getPort(), "backend"));
+                connectionPool.setUrl("jdbc:mysql://" + list.get(0).getEndpoint().getAddress() + ":" + list.get(0).getEndpoint().getPort() + "/Proxily");
+                connectionPool.setConnectionProperties("useSSL=true;verifyServerCertificate=true");
             }
         } catch(Exception e) {
             LOG.error("Exception: {}", e);
@@ -252,20 +250,6 @@ public class SQLClient {
     }
 
     /**
-     * This method sets the mysql connection properties which includes the IAM Database Authentication token
-     * as the password. It also specifies that SSL verification is required.
-     * @return
-     */
-    private static Properties setMySqlConnectionProperties(String hostname, int port, String user) {
-        Properties mysqlConnectionProperties = new Properties();
-        mysqlConnectionProperties.setProperty("verifyServerCertificate","false");
-        mysqlConnectionProperties.setProperty("useSSL", "false");
-        mysqlConnectionProperties.setProperty("user", user);
-        mysqlConnectionProperties.setProperty("password","password");
-        return mysqlConnectionProperties;
-    }
-
-    /**
      * This method generates the IAM Auth Token.
      * @return
      */
@@ -328,14 +312,4 @@ public class SQLClient {
         }
         return keyStoreFile;
     }
-
-    /**
-     * This method clears the SSL properties.
-     */
-    private static void clearSslProperties() {
-        System.clearProperty("javax.net.ssl.trustStore");
-        System.clearProperty("javax.net.ssl.trustStoreType");
-        System.clearProperty("javax.net.ssl.trustStorePassword");
-    }
-
 }
