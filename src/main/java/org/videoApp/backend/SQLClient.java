@@ -54,6 +54,8 @@ public class SQLClient {
         try {
             connectionPool = new BasicDataSource();
             connectionPool.setInitialSize(5);
+            connectionPool.setMaxActive(10);
+            connectionPool.setMaxIdle(5);
             // create a connection to the database
             if (region == null) {
                 connectionPool.setUsername("root");
@@ -97,11 +99,11 @@ public class SQLClient {
 
     public JSONObject getRow(String command, JSONArray values) {
         try {
-            Connection conn = connectionPool.getConnection();
             LOG.info("Getting row with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
             }
+            Connection conn = connectionPool.getConnection();
             PreparedStatement stmt = conn.prepareStatement(command);
             for (int i = 0; i < values.length(); i++) {
                 stmt.setObject(i+1, values.get(i));
@@ -110,6 +112,7 @@ public class SQLClient {
             if (rset.next() == false) {
                 JSONObject json = new JSONObject();
                 json.put("error", "OBJECT_NOT_FOUND");
+                terminate(conn);
                 return json;
             }
             JSONObject json = getEntityFromResultSet(rset);
@@ -123,11 +126,11 @@ public class SQLClient {
 
     public int deleteRows(String command, JSONArray values) {
         try {
-            Connection conn = connectionPool.getConnection();
             LOG.info("Deleting row with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
             }
+            Connection conn = connectionPool.getConnection();
             PreparedStatement stmt = conn.prepareStatement(command);
             for (int i = 0; i < values.length(); i++) {
                 stmt.setObject(i+1, values.get(i));
@@ -143,11 +146,11 @@ public class SQLClient {
 
     public JSONObject getRows(String command, JSONArray values) {
         try {
-            Connection conn = connectionPool.getConnection();
             LOG.info("Getting rows with: " + command + "\n\nWith values: " + values.toString());
             if ((command.length() - command.replaceAll("\\?","").length()) != values.length()) {
                 throw new Exception("The number of values does not match the statement: " + command);
             }
+            Connection conn = connectionPool.getConnection();
             PreparedStatement stmt = conn.prepareStatement(command);
             for (int i = 0; i < values.length(); i++) {
                 stmt.setObject(i+1, values.get(i));
@@ -199,6 +202,7 @@ public class SQLClient {
             }
             stmt.executeUpdate();
             if (!returnID) {
+                terminate(conn);
                 return 0;
             }
             ResultSet rset = stmt.getGeneratedKeys();

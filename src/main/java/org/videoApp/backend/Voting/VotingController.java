@@ -79,4 +79,27 @@ public class VotingController {
         }
     }
 
+    @RequestMapping("/reportPost")
+    public String reportPost(@RequestBody ReportRequest request) {
+        try {
+            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
+            JSONObject json = new JSONObject();
+            json.put("UserID", claims.getBody().getSubject());
+            json.put("PostID", request.getPostID());
+            sqlClient.setRow(json, "reported_posts", false);
+            return "{\"success\": \"true\"}";
+        } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (UnsupportedEncodingException e) {
+            LOG.error("UnsupportedEncodingException: {}", e);
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        } catch (IOException e) {
+            LOG.error("IOException: {}", e);
+            return "{\"error\": \"internal server error\"}";
+        } catch (UnauthorisedException e) {
+            return "{\"error\": \"Not a valid token.\"}";
+        }
+    }
+
 }
