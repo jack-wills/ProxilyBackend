@@ -17,6 +17,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class Application {
@@ -42,5 +44,16 @@ public class Application {
             }
         }
         SpringApplication.run(Application.class, args);
+    }
+
+    @Bean
+    public FilterRegistrationBean<ProxilyJwtFilter> jwtFilter(){
+        FilterRegistrationBean<ProxilyJwtFilter> registrationBean
+                = new FilterRegistrationBean<>();
+
+        registrationBean.setFilter(new ProxilyJwtFilter());
+        registrationBean.addUrlPatterns("/service/*");
+
+        return registrationBean;
     }
 }

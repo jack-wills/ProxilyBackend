@@ -207,8 +207,9 @@ public class SQLClient {
             }
             ResultSet rset = stmt.getGeneratedKeys();
             rset.next();
+            int id = rset.getInt(1);
             terminate(conn);
-            return rset.getInt(1);
+            return id;
         } catch (Exception e) {
             LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());

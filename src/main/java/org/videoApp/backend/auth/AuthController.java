@@ -10,13 +10,13 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.videoApp.backend.Profile;
+import org.videoApp.backend.ProxilyJwtFilter;
 import org.videoApp.backend.SQLClient;
-import org.videoApp.backend.TokenClient;
-import org.videoApp.backend.UnauthorisedException;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -35,7 +35,7 @@ public class AuthController {
     @Autowired
     private SQLClient sqlClient;
 
-    @RequestMapping("/signin")
+    @RequestMapping("/auth/signin")
     public String signin(@RequestBody SignInRequest request) {
         PasswordEncryptionService passwordEncryptionService = new PasswordEncryptionService();
         String sqlCommand = "SELECT * FROM users WHERE email=?";
@@ -62,7 +62,7 @@ public class AuthController {
                 response.put("name", itemReturn.getString("FirstName") + " " + itemReturn.getString("LastName"));
                 response.put("email", request.getEmail());
                 response.put("profilePicture", itemReturn.getString("ProfilePicture"));
-                response.put("jwt", jws);
+                response.put("jwt", "proxily." + jws);
             } else {
                 response.put("jwt", "");
             }
@@ -79,11 +79,9 @@ public class AuthController {
         }
     }
 
-    @RequestMapping("/checkToken")
-    public String checkToken(@RequestBody String requestString) {
+    @RequestMapping("/auth/checkToken")
+    public String checkToken(@RequestAttribute Jws<Claims> claims) {
         try {
-            JSONObject request = new JSONObject(requestString);
-            Jws<Claims> claims = TokenClient.decodeToken(request.getString("token"));
             JSONObject response = new JSONObject();
             response.put("name", String.class.cast(claims.getBody().get("firstName")) + " " + String.class.cast(claims.getBody().get("lastName")));
             response.put("email", claims.getBody().get("email"));
@@ -92,38 +90,56 @@ public class AuthController {
         } catch (JSONException e) {
             LOG.error("JSONException when checking token: {}", e);
             return "{\"error\": \"internal server error\"}";
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("UnsupportedEncodingException when checking token: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (IOException e) {
-            LOG.error("IOException when checking token: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
-    @RequestMapping("/registerFacebookAccount")
-    public String registerFacebookAccount(@RequestBody String requestString) {
+    @RequestMapping("/auth/signinFacebook")
+    public String signinFacebook(@RequestBody String requestString) {
         try {
             JSONObject request = new JSONObject(requestString);
             JSONObject sqlPutJson = new JSONObject();
-            Profile profile = TokenClient.getFacebookUserInfo(request.getString("token"));
-            String sqlCommand = "SELECT * FROM users WHERE UserID=?";
+            ProxilyJwtFilter filter = new ProxilyJwtFilter();
+            Profile profile = filter.getFacebookUserInfo(request.getString("token"));
+            String sqlCommand = "SELECT * FROM oauths WHERE ServiceUserID=? AND Provider=?";
             JSONArray values = new JSONArray();
             values.put(profile.getId());
+            values.put("facebook");
             JSONObject itemReturn = sqlClient.getRow(sqlCommand, values);
+            String lastName = profile.getName().substring(profile.getName().lastIndexOf(' ') + 1).trim();
+            String firstName = profile.getName().replace(" " + lastName, "");
+            int userID;
             if (itemReturn.has("error") && itemReturn.get("error").equals("OBJECT_NOT_FOUND")) {
-                sqlPutJson.put("UserID", profile.getId());
                 sqlPutJson.put("Email", profile.getEmail());
-                String lastName = profile.getName().substring(profile.getName().lastIndexOf(' ') + 1).trim();
-                String firstName = profile.getName().replace(" " + lastName, "");
                 sqlPutJson.put("FirstName", firstName);
                 sqlPutJson.put("LastName", lastName);
                 sqlPutJson.put("ProfilePicture", profile.getPicture());
-                sqlClient.setRow(sqlPutJson, "users", false);
+                userID = sqlClient.setRow(sqlPutJson, "users", false, true);
+                sqlPutJson = new JSONObject();
+                sqlPutJson.put("UserID", userID);
+                sqlPutJson.put("ServiceUserID", profile.getId());
+                sqlPutJson.put("Provider", "facebook");
+                sqlClient.setRow(sqlPutJson, "oauths", false);
+            } else {
+                userID = itemReturn.getInt("UserID");
             }
-            return "{\"success\": true}";
+            JSONObject response = new JSONObject();
+            String jws = Jwts.builder()
+                    .setSubject(Integer.toString(userID))
+                    .claim("firstName", firstName)
+                    .claim("lastName", lastName)
+                    .claim("profilePicture", profile.getPicture())
+                    .claim("email", profile.getEmail())
+                    .setIssuedAt(new Date())
+                    .signWith(
+                            SignatureAlgorithm.HS256,
+                            ENCRYPTION_KEY.getBytes("UTF-8")
+                    )
+                    .compact();
+            response.put("name", profile.getName());
+            response.put("email", profile.getEmail());
+            response.put("profilePicture", profile.getPicture());
+            response.put("jwt", "facebook." + jws);
+            return response.toString();
         } catch (JSONException e) {
             LOG.error("JSONException when registering facebook account: {}", e);
             return "{error: \"Not a valid token.\"}";
@@ -133,7 +149,7 @@ public class AuthController {
         }
     }
 
-    @RequestMapping("/register")
+    @RequestMapping("/auth/register")
     public String register(@RequestBody RegisterRequest request) {
         PasswordEncryptionService passwordEncryptionService = new PasswordEncryptionService();
         try {
@@ -172,7 +188,7 @@ public class AuthController {
                     )
                     .compact();
             JSONObject response = new JSONObject();
-            response.put("token", jws);
+            response.put("token", "proxily." + jws);
             return response.toString();
         } catch (JSONException e) {
             LOG.error("JSONException when registering account: {}", e);

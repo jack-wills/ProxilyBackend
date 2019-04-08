@@ -1,6 +1,5 @@
 package org.videoApp.backend.SavedLocations;
 
-import com.google.gson.Gson;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import org.json.JSONArray;
@@ -9,15 +8,11 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.videoApp.backend.SQLClient;
-import org.videoApp.backend.TokenClient;
-import org.videoApp.backend.UnauthorisedException;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 
 @RestController
 public class SavedLocationsController {
@@ -27,12 +22,10 @@ public class SavedLocationsController {
     @Autowired
     private SQLClient sqlClient;
 
-    @RequestMapping("/getSavedLocations")
-    public String getSavedLocations(@RequestBody String requestString) {
+    @RequestMapping("/service/getSavedLocations")
+    public String getSavedLocations(@RequestAttribute Jws<Claims> claims) {
         String sqlCommand = "SELECT SavedLocationID, Name, Latitude, Longitude FROM saved_locations WHERE UserID=?;";
         try {
-            JSONObject request = new JSONObject(requestString);
-            Jws<Claims> claims = TokenClient.decodeToken(request.getString("jwt"));
             JSONArray values = new JSONArray();
             values.put(claims.getBody().getSubject());
             JSONObject sqlOutput = sqlClient.getRows(sqlCommand, values);
@@ -53,21 +46,12 @@ public class SavedLocationsController {
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("UnsupportedEncodingException: {}", e);
-            return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (IOException e) {
-            LOG.error("IOException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
-    @RequestMapping("/putSavedLocation")
-    public String putSavedLocation(@RequestBody PutSavedLocationRequest request) {
+    @RequestMapping("/service/putSavedLocation")
+    public String putSavedLocation(@RequestBody PutSavedLocationRequest request, @RequestAttribute Jws<Claims> claims) {
         try {
-            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONObject sqlPutJson = new JSONObject();
             sqlPutJson.put("UserID", claims.getBody().getSubject());
             sqlPutJson.put("Name", request.getName());
@@ -83,35 +67,16 @@ public class SavedLocationsController {
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"internal server error\"}";
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("UnsupportedEncodingException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (IOException e) {
-            LOG.error("IOException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
-    @RequestMapping("/removeSavedLocation")
-    public String removeSavedLocation(@RequestBody RemoveSavedLocationRequest request) {
+    @RequestMapping("/service/removeSavedLocation")
+    public String removeSavedLocation(@RequestBody RemoveSavedLocationRequest request, @RequestAttribute Jws<Claims> claims) {
         String sqlCommand = "DELETE FROM saved_locations WHERE SavedLocationID=? AND UserID=?";
-        try {
-            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
-            JSONArray values = new JSONArray();
-            values.put(request.getID());
-            values.put(claims.getBody().getSubject());
-            sqlClient.deleteRows(sqlCommand, values);
-            return "{\"success\": true}";
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("UnsupportedEncodingException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (IOException e) {
-            LOG.error("IOException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
-        }
+        JSONArray values = new JSONArray();
+        values.put(request.getID());
+        values.put(claims.getBody().getSubject());
+        sqlClient.deleteRows(sqlCommand, values);
+        return "{\"success\": true}";
     }
 }

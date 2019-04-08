@@ -5,7 +5,6 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
-import com.google.gson.Gson;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import org.json.JSONException;
@@ -13,11 +12,11 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.videoApp.backend.SQLClient;
-import org.videoApp.backend.TokenClient;
 import org.videoApp.backend.UnauthorisedException;
 
 import java.io.IOException;
@@ -37,15 +36,14 @@ public class UploadItemController {
     @Autowired
     private SQLClient sqlClient;
 
-    @RequestMapping("/uploadItem")
-    public String uploadItem(@RequestBody UploadItemRequest request) {
+    @RequestMapping("/service/uploadItem")
+    public String uploadItem(@RequestBody UploadItemRequest request, @RequestAttribute Jws<Claims> claims) {
         LocalDateTime ldt = LocalDateTime.now(Clock.systemUTC());
         DateTimeFormatter format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ENGLISH);
         try {
             String responseUrl = "";
             JSONObject media = new JSONObject();
             JSONObject mediaContent = new JSONObject();
-            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             if (request.getMediaType().equals("text")) {
                 mediaContent.put("content", request.getMedia());
                 media.put(request.getMediaType(), mediaContent);
@@ -106,14 +104,6 @@ public class UploadItemController {
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"internal server error\"}";
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("UnsupportedEncodingException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (IOException e) {
-            LOG.error("IOException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 

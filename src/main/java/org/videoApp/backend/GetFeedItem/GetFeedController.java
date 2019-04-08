@@ -8,12 +8,12 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.videoApp.backend.ProxilyJwtFilter;
 import org.videoApp.backend.SQLClient;
-import org.videoApp.backend.TokenClient;
 import org.videoApp.backend.UnauthorisedException;
 
 import java.io.IOException;
@@ -29,14 +29,16 @@ public class GetFeedController {
 
     Gson GSON = new Gson();
 
-    @RequestMapping("/getPopularFeedItems")
-    public String getPopularFeedItems(@RequestBody GetFeedItemRequest request) {
+    @RequestMapping("/service/getPopularFeedItems")
+    public String getPopularFeedItems(@RequestBody GetFeedItemRequest request, @RequestAttribute Jws<Claims> claims) {
         try {
             JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Votes*0.7 + (1/(NOW() - Timestamp))*0.3 DESC", request.getGetPostsFrom(), request.getGetPostsTo());
             if (sqlOutput.has("error")) {
+                if (sqlOutput.getString("error").equals("OBJECT_NOT_FOUND")) {
+                    return "[]";
+                }
                 return sqlOutput.toString();
             }
-            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
@@ -78,25 +80,19 @@ public class GetFeedController {
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("UnsupportedEncodingException: {}", e);
-            return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (IOException e) {
-            LOG.error("IOException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
-    @RequestMapping("/getLatestFeedItems")
-    public String getLatestFeedItems(@RequestBody GetFeedItemRequest request) {
+    @RequestMapping("/service/getLatestFeedItems")
+    public String getLatestFeedItems(@RequestBody GetFeedItemRequest request, @RequestAttribute Jws<Claims> claims) {
         try {
             JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
             if (sqlOutput.has("error")) {
+                if (sqlOutput.getString("error").equals("OBJECT_NOT_FOUND")) {
+                    return "[]";
+                }
                 return sqlOutput.toString();
             }
-            Jws<Claims> claims = TokenClient.decodeToken(request.getJwt());
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
@@ -138,14 +134,6 @@ public class GetFeedController {
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (UnsupportedEncodingException e) {
-            LOG.error("UnsupportedEncodingException: {}", e);
-            return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (IOException e) {
-            LOG.error("IOException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 
@@ -189,7 +177,8 @@ public class GetFeedController {
             }
             int userVote;
             if (request.has("token")) {
-                Jws<Claims> claims = TokenClient.decodeToken(request.getString("token"));
+                ProxilyJwtFilter filter = new ProxilyJwtFilter();
+                Jws<Claims> claims = filter.decodeToken(request.getString("token"));
                 values = new JSONArray();
                 values.put(claims.getBody().getSubject());
                 values.put(item.getString("PostID"));
@@ -238,11 +227,9 @@ public class GetFeedController {
         }
     }
 
-    @RequestMapping("/getMyPosts")
-    public String getMyPosts(@RequestBody String requestString) {
+    @RequestMapping("/service/getMyPosts")
+    public String getMyPosts(@RequestAttribute Jws<Claims> claims) {
         try {
-            JSONObject request = new JSONObject(requestString);
-            Jws<Claims> claims = TokenClient.decodeToken(request.getString("token"));
             String sqlCommand = "SELECT * FROM posts WHERE UserID=?";
             JSONArray values = new JSONArray();
             values.put(claims.getBody().getSubject());
@@ -275,11 +262,6 @@ public class GetFeedController {
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
-        } catch (IOException e) {
-            LOG.error("IOException: {}", e);
-            return "{\"error\": \"internal server error\"}";
-        } catch (UnauthorisedException e) {
-            return "{\"error\": \"Not a valid token.\"}";
         }
     }
 }
