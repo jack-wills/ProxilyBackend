@@ -107,6 +107,31 @@ public class UploadItemController {
         }
     }
 
+    @RequestMapping("/service/uploadProfilePicture")
+    public String uploadProfilePicture(@RequestAttribute Jws<Claims> claims) {
+        try {
+            AmazonS3 client = getS3Client();
+            GeneratePresignedUrlRequest s3RequestUpload =
+                    new GeneratePresignedUrlRequest(
+                            "proxily-profile-pictures-us-east-1",
+                            claims.getBody().getSubject() + ".jpeg")
+                            .withExpiration(Date.from(Instant.now().plusSeconds(3600)))
+                            .withMethod(HttpMethod.PUT);
+            String responseUrl = client.generatePresignedUrl(s3RequestUpload).toString();
+
+            if (responseUrl != "") {
+                JSONObject response = new JSONObject();
+                response.put("uploadUrl", responseUrl);
+                return response.toString();
+            }
+            LOG.error("Presigned upload url is empty for profile picture upload.");
+            return "{\"error\": \"internal server error\"}";
+        } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
+            return "{\"error\": \"internal server error\"}";
+        }
+    }
+
     private AmazonS3 getS3Client() {
         return AmazonS3ClientBuilder.standard()
                 .withCredentials(new DefaultAWSCredentialsProviderChain())
