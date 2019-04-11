@@ -79,7 +79,7 @@ public class AuthController {
         }
     }
 
-    @RequestMapping("/auth/checkToken")
+    @RequestMapping("/service/checkToken")
     public String checkToken(@RequestAttribute Jws<Claims> claims) {
         try {
             JSONObject response = new JSONObject();
