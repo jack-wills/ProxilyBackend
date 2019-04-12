@@ -5,6 +5,7 @@ public class FeedItem {
     private int id, userVote, totalVotes, postId;
     private String submitter, submitterProfilePicture;
     private MediaPost media;
+    private boolean requestersPost;
 
     public FeedItem (final int id,
                      final MediaPost media,
@@ -12,7 +13,8 @@ public class FeedItem {
                      final String submitterProfilePicture,
                      final int userVote,
                      final int totalVotes,
-                     final int postId) {
+                     final int postId,
+                     final boolean requestersPost) {
         this.id = id;
         this.media = media;
         this.submitter = submitter;
@@ -20,6 +22,7 @@ public class FeedItem {
         this.userVote = userVote;
         this.totalVotes = totalVotes;
         this.postId = postId;
+        this.requestersPost = requestersPost;
     }
 
     public int getId() {
@@ -48,5 +51,9 @@ public class FeedItem {
 
     public int getPostId() {
         return postId;
+    }
+
+    public boolean isRequestersPost() {
+        return requestersPost;
     }
 }

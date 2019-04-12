@@ -198,10 +198,4 @@ public class AuthController {
             return "{\"error\": \"internal server error\"}";
         }
     }
-
-    @RequestMapping("/setProfilePicture")
-    public String setProfilePicture(@RequestBody ChangeProfilePictureRequest requestString) {
-        //TODO
-        return "{\"success\": true}";
-    }
 }

@@ -118,9 +118,15 @@ public class CommentsController {
                 return "{\"error\": \"" + result.get("error") + "\"}";
             }
             int voteDifference = request.getVote() - previousVote;
-            sqlClient.executeCommand("UPDATE comments SET Votes = Votes + " + voteDifference + " WHERE CommentID='" + request.getCommentID() + "';");
+            values = new JSONArray();
+            values.put(voteDifference);
+            values.put(request.getCommentID());
+            sqlClient.executeCommand("UPDATE comments SET Votes = Votes + ? WHERE CommentID=?;", values);
             if (request.getVote() == 0) {
-                sqlClient.executeCommand("DELETE FROM comments_votes WHERE UserID='" + claims.getBody().getSubject() + "' AND CommentID='" + request.getCommentID() + "';");
+                values = new JSONArray();
+                values.put(claims.getBody().getSubject());
+                values.put(request.getCommentID());
+                sqlClient.executeCommand("DELETE FROM comments_votes WHERE UserID=? AND CommentID=?;", values);
             } else {
                 JSONObject json = new JSONObject();
                 json.put("UserID", claims.getBody().getSubject());

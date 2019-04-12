@@ -84,15 +84,18 @@ public class SQLClient {
         }
     }
 
-    public boolean executeCommand(String command) {
+    public boolean executeCommand(String command, JSONArray values) {
         try {
             Connection conn = connectionPool.getConnection();
-            Statement stmt = conn.createStatement();
-            boolean success = stmt.execute(command);
+            PreparedStatement stmt = conn.prepareStatement(command);
+            for (int i = 0; i < values.length(); i++) {
+                stmt.setObject(i+1, values.get(i));
+            }
+            boolean success = stmt.execute();
             terminate(conn);
             return success;
-        } catch (SQLException e) {
-            LOG.error("SQLException: {}", e);
+        } catch (Exception e) {
+            LOG.error("Exception: {}", e);
             throw new IllegalStateException(e.getMessage());
         }
     }

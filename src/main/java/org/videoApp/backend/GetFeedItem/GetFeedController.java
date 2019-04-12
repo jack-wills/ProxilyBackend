@@ -74,7 +74,8 @@ public class GetFeedController {
                         item.getString("ProfilePicture"),
                         userVote,
                         item.getInt("Votes") - userVote,
-                        item.getInt("PostID"));
+                        item.getInt("PostID"),
+                        claims.getBody().getSubject().equals(item.getString("UserID")));
             }
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
@@ -128,7 +129,8 @@ public class GetFeedController {
                         item.getString("ProfilePicture"),
                         userVote,
                         item.getInt("Votes") - userVote,
-                        item.getInt("PostID"));
+                        item.getInt("PostID"),
+                        claims.getBody().getSubject().equals(item.getString("UserID")));
             }
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
@@ -176,9 +178,11 @@ public class GetFeedController {
                 return item.toString();
             }
             int userVote;
+            String userID = "";
             if (request.has("token")) {
                 ProxilyJwtFilter filter = new ProxilyJwtFilter();
                 Jws<Claims> claims = filter.decodeToken(request.getString("token"));
+                userID = claims.getBody().getSubject();
                 values = new JSONArray();
                 values.put(claims.getBody().getSubject());
                 values.put(item.getString("PostID"));
@@ -212,7 +216,8 @@ public class GetFeedController {
                     item.getString("ProfilePicture"),
                     userVote,
                     item.getInt("Votes") - userVote,
-                    item.getInt("PostID")));
+                    item.getInt("PostID"),
+                    userID.equals(item.getString("UserID"))));
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";
@@ -230,7 +235,7 @@ public class GetFeedController {
     @RequestMapping("/service/getMyPosts")
     public String getMyPosts(@RequestAttribute Jws<Claims> claims) {
         try {
-            String sqlCommand = "SELECT * FROM posts WHERE UserID=?";
+            String sqlCommand = "SELECT * FROM posts WHERE UserID=? AND FileUploaded=1 ORDER BY (Votes*0.7 + (1/(NOW() - Timestamp))*0.3) DESC";
             JSONArray values = new JSONArray();
             values.put(claims.getBody().getSubject());
             JSONObject sqlOutput = sqlClient.getRows(sqlCommand, values);
@@ -241,6 +246,20 @@ public class GetFeedController {
             JSONArray outputArray = new JSONArray();
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
+                int userVote;
+                values = new JSONArray();
+                values.put(claims.getBody().getSubject());
+                values.put(item.getString("PostID"));
+                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (UserID = ? AND PostID = ?)", values);
+                if (userVoteQueryJson.has("Vote")) {
+                    if (userVoteQueryJson.getBoolean("Vote")) {
+                        userVote = 1;
+                    } else {
+                        userVote = -1;
+                    }
+                } else {
+                    userVote = 0;
+                }
                 JSONObject media = new JSONObject(item.getString("Media"));
                 MediaPost mediaPost;
                 if (media.has("text")) {
@@ -253,9 +272,14 @@ public class GetFeedController {
                     throw new JSONException("Media is not of type text, image or video");
                 }
                 JSONObject itemReturn = new JSONObject();
-                itemReturn.put("media", GSON.toJson(mediaPost));
-                itemReturn.put("votes", item.getInt("Votes"));
+                itemReturn.put("id", i);
+                itemReturn.put("submitter", claims.getBody().get("firstName") + " " + claims.getBody().get("lastName"));
+                itemReturn.put("submitterProfilePicture", claims.getBody().get("profilePicture"));
+                itemReturn.put("userVote", userVote);
+                itemReturn.put("media", new JSONObject(GSON.toJson(mediaPost)));
+                itemReturn.put("totalVotes", item.getInt("Votes") - userVote);
                 itemReturn.put("postId", item.getInt("PostID"));
+                itemReturn.put("requestersPost", true);
                 outputArray.put(itemReturn);
             }
             return outputArray.toString();

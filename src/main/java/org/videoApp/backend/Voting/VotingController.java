@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.videoApp.backend.GetFeedItem.FeedItem;
+import org.videoApp.backend.GetFeedItem.ImagePost;
+import org.videoApp.backend.GetFeedItem.MediaPost;
+import org.videoApp.backend.GetFeedItem.TextPost;
+import org.videoApp.backend.GetFeedItem.VideoPost;
+import org.videoApp.backend.ProxilyJwtFilter;
 import org.videoApp.backend.SQLClient;
 
 @RestController
@@ -42,9 +48,15 @@ public class VotingController {
                 return "{\"error\": \"" + result.get("error") + "\"}";
             }
             int voteDifference = request.getVote() - previousVote;
-            sqlClient.executeCommand("UPDATE posts SET Votes = Votes + " + voteDifference + " WHERE PostID='" + request.getPostID() + "';");
+            values = new JSONArray();
+            values.put(voteDifference);
+            values.put(request.getPostID());
+            sqlClient.executeCommand("UPDATE posts SET Votes = Votes + ? WHERE PostID=?;", values);
             if (request.getVote() == 0) {
-                sqlClient.executeCommand("DELETE FROM users_votes WHERE UserID='" + claims.getBody().getSubject() + "' AND PostID='" + request.getPostID() + "';");
+                values = new JSONArray();
+                values.put(claims.getBody().getSubject());
+                values.put(request.getPostID());
+                sqlClient.executeCommand("DELETE FROM users_votes WHERE UserID=? AND PostID=?;", values);
             } else {
                 JSONObject json = new JSONObject();
                 json.put("UserID", claims.getBody().getSubject());
@@ -66,13 +78,39 @@ public class VotingController {
     }
 
     @RequestMapping("/service/reportPost")
-    public String reportPost(@RequestBody ReportRequest request, @RequestAttribute Jws<Claims> claims) {
+    public String reportPost(@RequestBody String requestString, @RequestAttribute Jws<Claims> claims) {
         try {
+            JSONObject request = new JSONObject(requestString);
             JSONObject json = new JSONObject();
             json.put("UserID", claims.getBody().getSubject());
-            json.put("PostID", request.getPostID());
+            json.put("PostID", request.getString("postID"));
             sqlClient.setRow(json, "reported_posts", false);
             return "{\"success\": \"true\"}";
+        } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
+            return "{\"error\": \"" + e.getMessage() + "\"}";
+        }
+    }
+
+    @RequestMapping("/service/deletePost")
+    public String deletePost(@RequestBody String requestString, @RequestAttribute Jws<Claims> claims) {
+        try {
+            JSONObject request = new JSONObject(requestString);
+            String sqlCommand =  "SELECT * FROM posts WHERE PostID=?";
+            JSONArray values = new JSONArray();
+            values.put(request.getString("postID"));
+            JSONObject item = sqlClient.getRow(sqlCommand, values);
+            if (item.has("error")) {
+                return item.toString();
+            }
+            if (Integer.toString(item.getInt("UserID")).equals(claims.getBody().getSubject())) {
+                values = new JSONArray();
+                values.put(claims.getBody().getSubject());
+                values.put(request.getString("postID"));
+                sqlClient.executeCommand("DELETE FROM posts WHERE UserID=? AND PostID=?;", values);
+                return "{\"success\": \"true\"}";
+            }
+            return "{\"error\": \"You are not authorised to perform this action\"}";
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
             return "{\"error\": \"" + e.getMessage() + "\"}";

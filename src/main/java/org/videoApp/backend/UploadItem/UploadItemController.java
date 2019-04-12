@@ -7,6 +7,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.GeneratePresignedUrlRequest;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -94,12 +95,17 @@ public class UploadItemController {
             sqlPutJson.put("Longitude", Float.valueOf(request.getLongitude()));
             sqlPutJson.put("Timestamp", format.format(ldt));
             sqlPutJson.put("FileUploaded", request.getMediaType().equals("text") ? 1 : 0);
-            sqlClient.setRow(sqlPutJson, "posts", false);
+            int postId = sqlClient.setRow(sqlPutJson, "posts", false, true);
             if (responseUrl != "") {
                 JSONObject response = new JSONObject();
                 response.put("uploadUrl", responseUrl);
                 return response.toString();
             }
+            JSONObject json = new JSONObject();
+            json.put("UserID", claims.getBody().getSubject());
+            json.put("PostID", postId);
+            json.put("Vote", 1);
+            sqlClient.setRow(json, "users_votes", true);
             return "{\"success\": true}";
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
