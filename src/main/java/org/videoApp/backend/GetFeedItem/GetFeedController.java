@@ -32,7 +32,7 @@ public class GetFeedController {
     @RequestMapping("/service/getPopularFeedItems")
     public String getPopularFeedItems(@RequestBody GetFeedItemRequest request, @RequestAttribute Jws<Claims> claims) {
         try {
-            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Votes*0.7 + (1/(NOW() - Timestamp))*0.3 DESC", request.getGetPostsFrom(), request.getGetPostsTo());
+            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), claims.getBody().getSubject(), "Votes*0.7 + (1/(NOW() - Timestamp))*0.3 DESC", request.getGetPostsFrom(), request.getGetPostsTo());
             if (sqlOutput.has("error")) {
                 if (sqlOutput.getString("error").equals("OBJECT_NOT_FOUND")) {
                     return "[]";
@@ -43,20 +43,6 @@ public class GetFeedController {
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
-                int userVote;
-                JSONArray values = new JSONArray();
-                values.put(claims.getBody().getSubject());
-                values.put(item.getString("PostID"));
-                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (UserID = ? AND PostID = ?)", values);
-                if (userVoteQueryJson.has("Vote")) {
-                    if (userVoteQueryJson.getBoolean("Vote")) {
-                        userVote = 1;
-                    } else {
-                        userVote = -1;
-                    }
-                } else {
-                    userVote = 0;
-                }
                 JSONObject media = new JSONObject(item.getString("Media"));
                 MediaPost mediaPost;
                 if (media.has("text")) {
@@ -67,6 +53,12 @@ public class GetFeedController {
                     mediaPost = new VideoPost(media.getJSONObject("video").getString("url"));
                 } else {
                     throw new JSONException("Media is not of type text, image or video");
+                }
+                int userVote;
+                if (item.has("Vote")) {
+                    userVote = item.getBoolean("Vote") ? 1 : -1;
+                } else {
+                    userVote = 0;
                 }
                 outputArray[i] = new FeedItem(i + 1,
                         mediaPost,
@@ -87,7 +79,8 @@ public class GetFeedController {
     @RequestMapping("/service/getLatestFeedItems")
     public String getLatestFeedItems(@RequestBody GetFeedItemRequest request, @RequestAttribute Jws<Claims> claims) {
         try {
-            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
+            JSONObject sqlOutput = getSQLQuery(sqlClient, request.getLatitude(), request.getLongitude(), claims.getBody().getSubject(), "Timestamp DESC", request.getGetPostsFrom(), request.getGetPostsTo());
+            LOG.info(sqlOutput.toString());
             if (sqlOutput.has("error")) {
                 if (sqlOutput.getString("error").equals("OBJECT_NOT_FOUND")) {
                     return "[]";
@@ -98,20 +91,6 @@ public class GetFeedController {
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
-                int userVote;
-                JSONArray values = new JSONArray();
-                values.put(claims.getBody().getSubject());
-                values.put(item.getString("PostID"));
-                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (UserID = ? AND PostID = ?)", values);
-                if (userVoteQueryJson.has("Vote")) {
-                    if (userVoteQueryJson.getBoolean("Vote")) {
-                        userVote = 1;
-                    } else {
-                        userVote = -1;
-                    }
-                } else {
-                    userVote = 0;
-                }
                 JSONObject media = new JSONObject(item.getString("Media"));
                 MediaPost mediaPost;
                 if (media.has("text")) {
@@ -122,6 +101,12 @@ public class GetFeedController {
                     mediaPost = new VideoPost(media.getJSONObject("video").getString("url"));
                 } else {
                     throw new JSONException("Media is not of type text, image or video");
+                }
+                int userVote;
+                if (item.has("Vote")) {
+                    userVote = item.getBoolean("Vote") ? 1 : -1;
+                } else {
+                    userVote = 0;
                 }
                 outputArray[i] = new FeedItem(i+1,
                         mediaPost,
@@ -139,9 +124,16 @@ public class GetFeedController {
         }
     }
 
-    public JSONObject getSQLQuery(final SQLClient sqlClient, final float latitude, final float longitude, final String orderBy, final int searchStart, final int searchEnd) throws JSONException {
+    public JSONObject getSQLQuery(
+            final SQLClient sqlClient,
+            final float latitude,
+            final float longitude,
+            final String userId,
+            final String orderBy,
+            final int searchStart,
+            final int searchEnd) throws JSONException {
         String sqlCommand =  "SELECT\n" +
-                "    posts.*, users.FirstName, users.LastName, users.ProfilePicture, reported_posts.ReportID, (\n" +
+                "    posts.*, users.FirstName, users.LastName, users.ProfilePicture, reported_posts.ReportID, users_votes.Vote, (\n" +
                 "      3959 * acos (\n" +
                 "      cos ( radians(?) )\n" +
                 "      * cos( radians( Latitude ) )\n" +
@@ -152,7 +144,8 @@ public class GetFeedController {
                 ") AS distance\n" +
                 "FROM posts\n" +
                 "INNER JOIN users ON posts.UserID = users.UserID\n" +
-                "LEFT OUTER JOIN reported_posts ON posts.UserID = reported_posts.UserID AND posts.PostID = reported_posts.PostID\n" +
+                "LEFT OUTER JOIN reported_posts ON ? = reported_posts.UserID AND posts.PostID = reported_posts.PostID\n" +
+                "LEFT OUTER JOIN users_votes ON ? = users_votes.UserID AND posts.PostID = users_votes.PostID\n" +
                 "WHERE FileUploaded = 1 AND ReportID is NULL\n" +
                 "HAVING distance < 5\n" +
                 "ORDER BY " + orderBy + "\n" +
@@ -161,6 +154,8 @@ public class GetFeedController {
         values.put(latitude);
         values.put(longitude);
         values.put(latitude);
+        values.put(userId);
+        values.put(userId);
         values.put(searchStart);
         values.put(searchEnd);
         return sqlClient.getRows(sqlCommand, values);
@@ -235,11 +230,15 @@ public class GetFeedController {
     @RequestMapping("/service/getMyPosts")
     public String getMyPosts(@RequestAttribute Jws<Claims> claims) {
         try {
-            String sqlCommand = "SELECT * FROM posts WHERE UserID=? AND FileUploaded=1 ORDER BY (Votes*0.7 + (1/(NOW() - Timestamp))*0.3) DESC";
+            String sqlCommand = "SELECT posts.*, users_votes.Vote FROM posts LEFT OUTER JOIN users_votes ON ? = users_votes.UserID AND posts.PostID = users_votes.PostID WHERE posts.UserID=? AND FileUploaded=1 ORDER BY (Votes*0.7 + (1/(NOW() - Timestamp))*0.3) DESC";
             JSONArray values = new JSONArray();
+            values.put(claims.getBody().getSubject());
             values.put(claims.getBody().getSubject());
             JSONObject sqlOutput = sqlClient.getRows(sqlCommand, values);
             if (sqlOutput.has("error")) {
+                if (sqlOutput.getString("error").equals("OBJECT_NOT_FOUND")) {
+                    return "[]";
+                }
                 return sqlOutput.toString();
             }
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
@@ -247,16 +246,8 @@ public class GetFeedController {
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
                 int userVote;
-                values = new JSONArray();
-                values.put(claims.getBody().getSubject());
-                values.put(item.getString("PostID"));
-                JSONObject userVoteQueryJson = sqlClient.getRow("SELECT * FROM users_votes WHERE (UserID = ? AND PostID = ?)", values);
-                if (userVoteQueryJson.has("Vote")) {
-                    if (userVoteQueryJson.getBoolean("Vote")) {
-                        userVote = 1;
-                    } else {
-                        userVote = -1;
-                    }
+                if (item.has("Vote")) {
+                    userVote = item.getBoolean("Vote") ? 1 : -1;
                 } else {
                     userVote = 0;
                 }

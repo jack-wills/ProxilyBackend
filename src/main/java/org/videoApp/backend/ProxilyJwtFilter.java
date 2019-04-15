@@ -10,7 +10,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.filter.GenericFilterBean;
 
 import javax.servlet.FilterChain;
@@ -32,8 +31,11 @@ public class ProxilyJwtFilter extends GenericFilterBean {
     private static final Logger LOG = LoggerFactory.getLogger(ProxilyJwtFilter.class);
     private static String DECRYPTION_KEY = System.getProperty("ProxilyEncryptionKey");
 
-    @Autowired
     private SQLClient sqlClient;
+
+    public ProxilyJwtFilter() {
+        this.sqlClient = new SQLClient();
+    }
 
     @Override
     public void doFilter(
