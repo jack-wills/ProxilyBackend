@@ -2,9 +2,15 @@ version: 0.0
 os: linux
 files:
   - source: ./
-    destination: /var/server/
+    destination: /var/server
+permissions:
+  - object: /var/server
+    owner: ec2-user
+    mode: 777
+    type:
+    - file
 hooks:
-  AfterInstall:
+  ApplicationStart:
     - location: scripts/start-silent.sh
       runas: root
   ApplicationStop:
