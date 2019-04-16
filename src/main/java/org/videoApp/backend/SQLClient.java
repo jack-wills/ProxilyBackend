@@ -10,6 +10,10 @@ import com.amazonaws.services.rds.auth.RdsIamAuthTokenGenerator;
 import com.amazonaws.services.rds.model.DBInstance;
 import com.amazonaws.services.rds.model.DescribeDBInstancesRequest;
 import com.amazonaws.services.rds.model.DescribeDBInstancesResult;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParameterResult;
 import org.apache.commons.dbcp.BasicDataSource;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -74,7 +78,10 @@ public class SQLClient {
                 List<DBInstance> list = result.getDBInstances();
                 setSslProperties();
                 connectionPool.setUsername("backend");
-                connectionPool.setPassword(generateAuthToken(list.get(0).getEndpoint().getAddress(), list.get(0).getEndpoint().getPort(), "backend"));
+                GetParameterRequest parameterRequest = new GetParameterRequest().withName("ProxilyRDSPassword");
+                AWSSimpleSystemsManagement ssmclient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
+                GetParameterResult parameterResult = ssmclient.getParameter(parameterRequest);
+                connectionPool.setPassword(parameterResult.getParameter().getValue());
                 connectionPool.setUrl("jdbc:mysql://" + list.get(0).getEndpoint().getAddress() + ":" + list.get(0).getEndpoint().getPort() + "/Proxily");
                 connectionPool.setConnectionProperties("useSSL=true;verifyServerCertificate=true");
             }
