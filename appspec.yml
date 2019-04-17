@@ -11,7 +11,7 @@ permissions:
     - file
 hooks:
   ApplicationStart:
-    - location: scripts/start-silent.sh
+    - location: scripts/start-server.sh
       runas: root
   ApplicationStop:
     - location: scripts/stop-server.sh
