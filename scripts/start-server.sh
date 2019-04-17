@@ -1,2 +1,3 @@
 #!/bin/bash
-sudo java -jar /var/server/CombinedService.jar
+echo "Test" > ./test2.txt
+sudo java -jar /var/server/CombinedService.jar > ./log.txt
