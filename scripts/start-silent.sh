@@ -1,4 +1,2 @@
 #!/bin/bash
-cd /var/server/scripts
-chmod 777 ./start-server.sh
-nohup ./start-server.sh > proxily.out 2> proxily.err < /dev/null &
+sudo /var/server/scripts/start-server.sh > /dev/null 2> /dev/null < /dev/null &
