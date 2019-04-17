@@ -6,9 +6,16 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
+import java.util.List;
 
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
+import com.amazonaws.services.rds.AmazonRDS;
+import com.amazonaws.services.rds.AmazonRDSClientBuilder;
+import com.amazonaws.services.rds.model.DBInstance;
+import com.amazonaws.services.rds.model.DescribeDBInstancesRequest;
+import com.amazonaws.services.rds.model.DescribeDBInstancesResult;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.model.GetParameterRequest;
@@ -32,6 +39,20 @@ public class Application {
             AWSSimpleSystemsManagement ssmclient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
             GetParameterResult parameterResult = ssmclient.getParameter(parameterRequest);
             System.setProperty("ProxilyEncryptionKey", parameterResult.getParameter().getValue());
+            parameterRequest = new GetParameterRequest().withName("ProxilyRDSPassword");
+            parameterResult = ssmclient.getParameter(parameterRequest);
+            System.setProperty("ProxilyRDSPassword", parameterResult.getParameter().getValue());
+
+            AmazonRDS rdsClient = AmazonRDSClientBuilder
+                    .standard()
+                    .withCredentials(new DefaultAWSCredentialsProviderChain())
+                    .withRegion(region.getName())
+                    .build();
+
+            DescribeDBInstancesRequest request = new DescribeDBInstancesRequest();
+            DescribeDBInstancesResult result = rdsClient.describeDBInstances(request);
+            List<DBInstance> list = result.getDBInstances();
+            System.setProperty("ProxilyRDSEndpoint", list.get(0).getEndpoint().getAddress() + ":" + list.get(0).getEndpoint().getPort());
             if (!new File("rds-ca-2015-root.pem").exists()) {
                 try {
                     URL website = new URL("https://s3.amazonaws.com/rds-downloads/rds-ca-2015-root.pem");

@@ -67,22 +67,11 @@ public class SQLClient {
                 connectionPool.setUrl("jdbc:mysql://localhost:3306/Proxily?autoReconnect=true&useSSL=false");
             } else {
                 SSL_CERTIFICATE = "rds-ca-2015-root.pem";
-                AmazonRDS rdsClient = AmazonRDSClientBuilder
-                        .standard()
-                        .withCredentials(new DefaultAWSCredentialsProviderChain())
-                        .withRegion(region.getName())
-                        .build();
-
-                DescribeDBInstancesRequest request = new DescribeDBInstancesRequest();
-                DescribeDBInstancesResult result = rdsClient.describeDBInstances(request);
-                List<DBInstance> list = result.getDBInstances();
                 setSslProperties();
                 connectionPool.setUsername("backend");
-                GetParameterRequest parameterRequest = new GetParameterRequest().withName("ProxilyRDSPassword");
-                AWSSimpleSystemsManagement ssmclient = AWSSimpleSystemsManagementClientBuilder.defaultClient();
-                GetParameterResult parameterResult = ssmclient.getParameter(parameterRequest);
-                connectionPool.setPassword(parameterResult.getParameter().getValue());
-                connectionPool.setUrl("jdbc:mysql://" + list.get(0).getEndpoint().getAddress() + ":" + list.get(0).getEndpoint().getPort() + "/Proxily");
+                connectionPool.setPassword(System.getProperty("ProxilyRDSPassword"));
+                System.out.println(System.getProperty("ProxilyRDSPassword"));
+                connectionPool.setUrl("jdbc:mysql://" + System.getProperty("ProxilyRDSEndpoint") + "/Proxily");
                 connectionPool.setConnectionProperties("useSSL=true;verifyServerCertificate=true");
             }
         } catch(Exception e) {
