@@ -6,33 +6,39 @@ cache:
   directories:
     - $HOME/.m2
 
-deploy:
-- provider: s3
-  access_key_id: $AWS_ACCESS_KEY
-  secret_access_key: $AWS_SECRET_KEY
-  bucket: code-deploy-us-east-1-beta
-  region: us-east-1
-  local_dir: travis_upload
-  skip_cleanup: true
-  on: &1
-    repo: jack53519/ProxilyBackend
-- provider: codedeploy
-  access_key_id: $AWS_ACCESS_KEY
-  secret_access_key: $AWS_SECRET_KEY
-  application: proxily
-  key: latest.zip
-  deployment_group: proxily-deployment-group
-  bucket: code-deploy-us-east-1-beta
-  bundle_type: zip
-  on: *1
-  wait-until-deployed: true
+stages:
+  - deploy
 
-install: true
-script:
-  - mvn clean install
-  - mv appspec.yml target/appspec.yml
-  - mv ./scripts target/scripts
-  - cd target
-  - zip -r latest *
-  - mkdir -p travis_upload
-  - mv latest.zip travis_upload/latest.zip
+jobs:
+  include:
+  - stage: deploy
+    deploy:
+    - provider: s3
+      access_key_id: $AWS_ACCESS_KEY
+      secret_access_key: $AWS_SECRET_KEY
+      bucket: code-deploy-us-east-1-beta
+      region: us-east-1
+      local_dir: travis_upload
+      skip_cleanup: true
+      on: &1
+        repo: jack53519/ProxilyBackend
+    - provider: codedeploy
+      access_key_id: $AWS_ACCESS_KEY
+      secret_access_key: $AWS_SECRET_KEY
+      application: proxily
+      key: latest.zip
+      deployment_group: proxily-deployment-group
+      bucket: code-deploy-us-east-1-beta
+      bundle_type: zip
+      on: *1
+      wait-until-deployed: true
+
+    install: true
+    script:
+      - mvn clean install
+      - mv appspec.yml target/appspec.yml
+      - mv ./scripts target/scripts
+      - cd target
+      - zip -r latest *
+      - mkdir -p travis_upload
+      - mv latest.zip travis_upload/latest.zip
