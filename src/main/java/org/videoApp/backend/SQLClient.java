@@ -215,6 +215,51 @@ public class SQLClient {
         }
     }
 
+    public void setRows(JSONObject command, String tableName, int rowNum, boolean override) {
+        try {
+            Connection conn = connectionPool.getConnection();
+            StringBuilder cmdBuilder = new StringBuilder();
+            if (override) {
+                cmdBuilder.append("replace into " + tableName + " (");
+            } else {
+                cmdBuilder.append("insert into " + tableName + " (");
+            }
+            Iterator<String> itr = command.keys();
+            for (int i = 0; i < command.length()-1; i++) {
+                cmdBuilder.append(itr.next() + ", ");
+            }
+            cmdBuilder.append(itr.next() + ") values ");
+
+            StringBuilder entryBuilder = new StringBuilder();
+            entryBuilder.append("(");
+            for (int j = 0; j < command.length() - 1; j++) {
+                entryBuilder.append("?, ");
+            }
+            entryBuilder.append("?)");
+            String entry = entryBuilder.toString();
+            for (int i = 0; i < rowNum-1; i++) {
+                cmdBuilder.append(entry + ", ");
+            }
+            cmdBuilder.append(entry + ";");
+            PreparedStatement stmt;
+            String cmd = cmdBuilder.toString();
+            LOG.info("Setting row with command: " + cmd + "and values: " + command.toString());
+            stmt = conn.prepareStatement(cmd);
+            Iterator<String> itr1 = command.keys();
+            for (int i = 0; i < command.length(); i++) {
+                String key1 = itr1.next();
+                for (int j = 0; j < rowNum; j++) {
+                    stmt.setObject((j*command.length())+i+1, command.getJSONArray(key1).get(j));
+                }
+            }
+            stmt.executeUpdate();
+            terminate(conn);
+        } catch (Exception e) {
+            LOG.error("Exception: {}", e);
+            throw new IllegalStateException(e.getMessage());
+        }
+    }
+
     protected JSONObject getEntitiesFromResultSet(ResultSet resultSet) throws SQLException, JSONException {
         if (resultSet.next() == false) {
             JSONObject json = new JSONObject();

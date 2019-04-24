@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.videoApp.backend.Profile;
 import org.videoApp.backend.ProxilyJwtFilter;
 import org.videoApp.backend.SQLClient;
+import org.videoApp.backend.SavedLocations.SetLocationRequest;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -195,6 +196,20 @@ public class AuthController {
             return "{\"error\": \"internal server error\"}";
         } catch (UnsupportedEncodingException e) {
             LOG.error("UnsupportedEncodingException when registering account: {}", e);
+            return "{\"error\": \"internal server error\"}";
+        }
+    }
+
+    @RequestMapping("/service/updateSettings")
+    public String updateSettings(@RequestBody String settings, @RequestAttribute Jws<Claims> claims) {
+        try {
+            JSONObject sqlPutJson = new JSONObject();
+            sqlPutJson.put("UserID", claims.getBody().getSubject());
+            sqlPutJson.put("SettingsField", settings);
+            sqlClient.setRow(sqlPutJson, "user_settings", true, false);
+            return "{\"success\": true}";
+        } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
             return "{\"error\": \"internal server error\"}";
         }
     }

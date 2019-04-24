@@ -79,4 +79,19 @@ public class SavedLocationsController {
         sqlClient.deleteRows(sqlCommand, values);
         return "{\"success\": true}";
     }
+
+    @RequestMapping("/service/setLocation")
+    public String setLocation(@RequestBody SetLocationRequest request, @RequestAttribute Jws<Claims> claims) {
+        try {
+            JSONObject sqlPutJson = new JSONObject();
+            sqlPutJson.put("UserID", claims.getBody().getSubject());
+            sqlPutJson.put("Latitude", request.getLatitude());
+            sqlPutJson.put("Longitude", request.getLongitude());
+            sqlClient.setRow(sqlPutJson, "user_location", true, false);
+            return "{\"success\": true}";
+        } catch (JSONException e) {
+            LOG.error("JSONException: {}", e);
+            return "{\"error\": \"internal server error\"}";
+        }
+    }
 }

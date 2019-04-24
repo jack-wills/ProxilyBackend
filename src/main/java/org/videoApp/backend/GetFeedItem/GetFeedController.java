@@ -41,6 +41,9 @@ public class GetFeedController {
             }
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
+            JSONObject markPostSeen = new JSONObject();
+            JSONArray markPostSeenUserID = new JSONArray();
+            JSONArray markPostSeenPostID = new JSONArray();
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
                 JSONObject media = new JSONObject(item.getString("Media"));
@@ -60,6 +63,8 @@ public class GetFeedController {
                 } else {
                     userVote = 0;
                 }
+                markPostSeenUserID.put(claims.getBody().getSubject());
+                markPostSeenPostID.put(item.getInt("PostID"));
                 outputArray[i] = new FeedItem(i + 1,
                         mediaPost,
                         item.getString("FirstName") + " " + item.getString("LastName"),
@@ -69,6 +74,9 @@ public class GetFeedController {
                         item.getInt("PostID"),
                         claims.getBody().getSubject().equals(item.getString("UserID")));
             }
+            markPostSeen.put("UserID", markPostSeenUserID);
+            markPostSeen.put("PostID", markPostSeenPostID);
+            sqlClient.setRows(markPostSeen, "viewed_posts", sqlArray.length(),true);
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
@@ -89,6 +97,9 @@ public class GetFeedController {
             }
             JSONArray sqlArray = sqlOutput.getJSONArray("entries");
             FeedItem[] outputArray = new FeedItem[sqlArray.length()];
+            JSONObject markPostSeen = new JSONObject();
+            JSONArray markPostSeenUserID = new JSONArray();
+            JSONArray markPostSeenPostID = new JSONArray();
             for (int i = 0; i < sqlArray.length(); i++) {
                 JSONObject item = sqlArray.getJSONObject(i);
                 JSONObject media = new JSONObject(item.getString("Media"));
@@ -108,6 +119,8 @@ public class GetFeedController {
                 } else {
                     userVote = 0;
                 }
+                markPostSeenUserID.put(claims.getBody().getSubject());
+                markPostSeenPostID.put(item.getInt("PostID"));
                 outputArray[i] = new FeedItem(i+1,
                         mediaPost,
                         item.getString("FirstName") + " " + item.getString("LastName"),
@@ -117,6 +130,9 @@ public class GetFeedController {
                         item.getInt("PostID"),
                         claims.getBody().getSubject().equals(item.getString("UserID")));
             }
+            markPostSeen.put("UserID", markPostSeenUserID);
+            markPostSeen.put("PostID", markPostSeenPostID);
+            sqlClient.setRows(markPostSeen, "viewed_posts", sqlArray.length(),true);
             return GSON.toJson(outputArray);
         } catch (JSONException e) {
             LOG.error("JSONException: {}", e);
@@ -147,7 +163,7 @@ public class GetFeedController {
                 "LEFT OUTER JOIN reported_posts ON ? = reported_posts.UserID AND posts.PostID = reported_posts.PostID\n" +
                 "LEFT OUTER JOIN users_votes ON ? = users_votes.UserID AND posts.PostID = users_votes.PostID\n" +
                 "WHERE FileUploaded = 1 AND ReportID is NULL\n" +
-                "HAVING distance < 5\n" +
+                "HAVING distance < 15\n" +
                 "ORDER BY " + orderBy + "\n" +
                 "LIMIT ? , ?;";
         JSONArray values = new JSONArray();

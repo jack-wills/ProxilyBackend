@@ -11,7 +11,7 @@ stages:
 
 jobs:
   include:
-  - stage: deploy
+  - stage: deploy_dev
     deploy:
     - provider: s3
       access_key_id: $AWS_ACCESS_KEY
@@ -42,3 +42,6 @@ jobs:
       - zip -r latest *
       - mkdir -p travis_upload
       - mv latest.zip travis_upload/latest.zip
+  - stage: test_dev
+    script:
+      - mvn clean install
